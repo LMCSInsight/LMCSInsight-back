@@ -8,7 +8,7 @@ async function main() {
 
   const admin = await prisma.user.upsert({
     where: { email: "admin@lmcs.dz" },
-    update: {},
+    update: { password: hashedPassword, firstName: "System", lastName: "Administrator", role: "ADMIN" },
     create: {
       firstName: "System",
       lastName: "Administrator",
@@ -20,7 +20,7 @@ async function main() {
 
   const director = await prisma.user.upsert({
     where: { email: "director@lmcs.dz" },
-    update: {},
+    update: { password: hashedPassword, firstName: "Director", lastName: "User", role: "DIRECTOR" },
     create: {
       firstName: "Director",
       lastName: "User",
@@ -30,21 +30,22 @@ async function main() {
     },
   });
 
-  const teacher = await prisma.user.upsert({
-    where: { email: "teacher@lmcs.dz" },
-    update: {},
+  // Researcher (chercheur): user with role RESEARCHER. Link to Chercheur via chercheur_id when needed.
+  const researcher = await prisma.user.upsert({
+    where: { email: "researcher@lmcs.dz" },
+    update: { password: hashedPassword, firstName: "Researcher", lastName: "User", role: "RESEARCHER" },
     create: {
-      firstName: "Teacher",
+      firstName: "Researcher",
       lastName: "User",
-      email: "teacher@lmcs.dz",
+      email: "researcher@lmcs.dz",
       password: hashedPassword,
-      role: "TEACHER",
+      role: "RESEARCHER",
     },
   });
 
   const assistant = await prisma.user.upsert({
     where: { email: "assistant@lmcs.dz" },
-    update: {},
+    update: { password: hashedPassword, firstName: "Assistant", lastName: "Validation", role: "ASSISTANT" },
     create: {
       firstName: "Assistant",
       lastName: "Validation",
@@ -57,7 +58,7 @@ async function main() {
   console.log("Seed completed:", {
     admin: admin.email,
     director: director.email,
-    teacher: teacher.email,
+    researcher: researcher.email,
     assistant: assistant.email,
   });
 }

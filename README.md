@@ -22,26 +22,68 @@ The database is created by the SQL script (no Prisma migrations for initial sche
 
 ## Setup
 
+### 1. Install and env
+
 ```bash
 cd backend
 npm install
-cp .env.example .env   # Edit DATABASE_URL, JWT_SECRET, etc.
+cp .env.example .env   # Or edit the existing .env
 ```
 
-Create the database and run the SQL script (PostgreSQL):
+### 2. Local PostgreSQL (e.g. pgAdmin)
+
+1. In **pgAdmin** (or psql), create a database named `lmcs_platform` (e.g. right‑click Databases → Create → Database).
+2. In `.env`, set `DATABASE_URL` to your local Postgres credentials:
+   - Format: `postgresql://USER:PASSWORD@localhost:5432/lmcs_platform`
+   - Example: `postgresql://postgres:yourpassword@localhost:5432/lmcs_platform`
+   - Use the same user/password you use in pgAdmin to connect.
+
+### 3. Create tables and seed users
+
+Either use Prisma to create tables from the schema:
+
+```bash
+npx prisma generate
+npx prisma db push     # Creates/updates tables from schema.prisma
+npm run db:seed        # Creates one user per role (see Seed users below)
+```
+
+**If `prisma db push` fails with "cannot alter type of a column used by a view or rule"** (e.g. view `chercheurs_actifs_details`), drop the views first, push, then recreate them:
+
+```bash
+npm run db:drop-views
+npx prisma db push --accept-data-loss
+npm run db:recreate-views
+npm run db:seed
+```
+
+Or with psql: run `scripts/drop-views-for-prisma-push.sql`, then `db push`, then `scripts/recreate-views-after-prisma-push.sql`.
+
+Or, if you use the legacy SQL script:
 
 ```bash
 createdb lmcs_platform
 psql -U postgres -d lmcs_platform -f create_complete_database.sql
+npx prisma generate
+npm run db:seed
 ```
 
-Then:
+### 4. Start the API
 
 ```bash
-npx prisma generate
-npm run db:seed        # Optional: seed users (admin, director, teacher, assistant)
-npm run dev            # Start dev server (default port 5000)
+npm run dev            # Default port 5000
 ```
+
+### Seed users (for login tests)
+
+After `npm run db:seed`, you can log in with:
+
+| Role       | Email               | Password   |
+|------------|---------------------|------------|
+| ADMIN      | admin@lmcs.dz       | `admin123` |
+| DIRECTOR   | director@lmcs.dz    | `admin123` |
+| RESEARCHER | researcher@lmcs.dz  | `admin123` |
+| ASSISTANT  | assistant@lmcs.dz   | `admin123` |
 
 ## Environment (.env)
 
@@ -96,5 +138,5 @@ Request flow: **Route → Service → Repository → Prisma → PostgreSQL**.
 
 - **ADMIN** – Full access, user management.
 - **DIRECTOR** – Read-all stats and reports.
-- **TEACHER** – Own supervisions (filtered by `chercheur_id` when linked).
+- **RESEARCHER** – Own supervisions (filtered by `chercheur_id` when linked; researcher = chercheur).
 - **ASSISTANT** – Validation workflow (pending list, validate/reject).

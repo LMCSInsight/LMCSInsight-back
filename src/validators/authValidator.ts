@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-const roleEnum = z.enum(["ADMIN", "DIRECTOR", "TEACHER", "ASSISTANT"]);
+const roleEnum = z.enum(["ADMIN", "DIRECTOR", "RESEARCHER", "ASSISTANT"]);
 
 export const registerSchema = z.object({
   body: z.object({
@@ -8,7 +8,7 @@ export const registerSchema = z.object({
     lastName: z.string().min(1, "Last name is required"),
     email: z.string().email("Invalid email"),
     password: z.string().min(8, "Password must be at least 8 characters"),
-    role: roleEnum.optional().default("TEACHER"),
+    role: roleEnum.optional().default("RESEARCHER"),
     phoneNumber: z.string().optional().nullable(),
     chercheur_id: z.string().optional().nullable(),
   }),

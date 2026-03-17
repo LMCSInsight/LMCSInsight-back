@@ -21,29 +21,30 @@ datasource db {
 // ENUMS
 // ============================================
 
-// Chercheur Enums
+// Chercheur Enums (map to existing DB values with spaces/hyphens)
 enum Qualite {
-  Enseignant_Chercheur  // Enseignant-Chercheur (hyphens become underscores)
+  Enseignant_Chercheur  @map("Enseignant-Chercheur")
   Chercheur
   Doctorant
 }
 
 enum GradeRecherche {
-  Attache_de_recherche
-  Charge_de_recherche
-  Directeur_de_recherche
+  Attache_de_recherche   @map("Attache de recherche")
+  Charge_de_recherche    @map("Charge de recherche")
+  Directeur_de_recherche @map("Directeur de recherche")
 }
 
 enum StatutChercheur {
   Actif
-  Non_actif
+  Non_actif             @map("Non actif")
 }
 
-// System User Enums
+// System User Enums (keep TEACHER so DB enum is not dropped; app uses RESEARCHER)
 enum UserRole {
   ADMIN
   DIRECTOR
   TEACHER
+  RESEARCHER
   ASSISTANT
 }
 

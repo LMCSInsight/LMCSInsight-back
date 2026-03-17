@@ -95,8 +95,10 @@ export async function getSupervisions(
 ) {
   const { skip, take } = getPagination({ page, pageSize });
   const where =
-    role === "TEACHER" && chercheurId
-      ? { supervisors: { some: { supervisorId: chercheurId } } }
+    role === "RESEARCHER"
+      ? chercheurId
+        ? { supervisors: { some: { supervisorId: chercheurId } } }
+        : { id: "00000000-0000-0000-0000-000000000000" } // no such supervision → empty list
       : undefined;
   const [items, total] = await Promise.all([
     supervisionRepository.findAll(skip, take, where),

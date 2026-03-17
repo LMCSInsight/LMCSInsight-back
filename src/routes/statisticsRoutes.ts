@@ -14,17 +14,17 @@ router.get(
   roleMiddleware(ROLES.DIRECTOR, ROLES.ADMIN),
   async (_req, res) => {
     try {
-      const [total, byType, loadPerTeacher, defenseRate, avgDuration] = await Promise.all([
+      const [total, byType, loadPerResearcher, defenseRate, avgDuration] = await Promise.all([
         statisticsService.getTotalSupervisions(),
         statisticsService.getDistributionByType(),
-        statisticsService.getSupervisionLoadPerTeacher(),
+        statisticsService.getSupervisionLoadPerResearcher(),
         statisticsService.getDefenseRate(),
         statisticsService.getAverageSupervisionDuration(),
       ]);
       successRes(res, {
         totalSupervisions: total,
         distributionByType: byType,
-        supervisionLoadPerTeacher: loadPerTeacher,
+        supervisionLoadPerResearcher: loadPerResearcher,
         defenseRate,
         averageSupervisionDuration: avgDuration,
       });

@@ -34,4 +34,8 @@ router.post(
   }
 );
 
+router.post("/logout", (_req, res) => {
+  res.status(204).end();
+});
+
 export default router;

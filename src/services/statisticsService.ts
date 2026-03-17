@@ -12,7 +12,7 @@ export async function getDistributionByType() {
   return result.map((r) => ({ type: r.type, count: r._count.id }));
 }
 
-export async function getSupervisionLoadPerTeacher() {
+export async function getSupervisionLoadPerResearcher() {
   const result = await prisma.supervisionSupervisor.groupBy({
     by: ["supervisorId"],
     _count: { supervisionId: true },
