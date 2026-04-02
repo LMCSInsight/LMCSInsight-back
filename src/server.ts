@@ -1,14 +1,7 @@
 import app from "./app.js";
-import { env } from "./config/env.js";
-import { logger } from "./config/logger.js";
 
-const server = app.listen(env.PORT, () => {
-  logger.info(`Server listening on port ${env.PORT}`, { env: env.NODE_ENV });
-});
+const port = Number(process.env.PORT ?? 5000);
 
-process.on("SIGTERM", () => {
-  server.close(() => {
-    logger.info("Server closed");
-    process.exit(0);
-  });
+app.listen(port, () => {
+  console.log(`Server listening on port ${port}`);
 });
