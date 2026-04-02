@@ -198,7 +198,7 @@ model Student {
   id          String   @id @default(uuid())
   firstName   String
   lastName    String
-  email       String?  @unique
+  email       String   @unique
   institution String
   level       String
   specialty   String?

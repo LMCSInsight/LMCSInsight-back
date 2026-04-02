@@ -11,13 +11,16 @@
     "postinstall": "prisma generate",
     "start": "node dist/server.js",
     "prepare": "husky install",
+    "pretest": "npm run db:sql",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
     "db:studio": "prisma studio",
     "db:drop-views": "tsx scripts/drop-views.ts",
-    "db:recreate-views": "tsx scripts/recreate-views.ts"
+    "db:recreate-views": "tsx scripts/recreate-views.ts",
+    "db:sql": "prisma migrate diff --from-empty --to-schema prisma/schema.prisma --script --output prisma/generated-from-schema.sql",
+    "db:sql:test": "npm run db:sql"
   },
   "dependencies": {
     "@prisma/client": "^7.6.0",
@@ -35,6 +38,7 @@
     "@types/bcrypt": "^6.0.0",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
+    "@types/jest": "^30.0.0",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^25.5.0",
     "@typescript-eslint/eslint-plugin": "^8.57.1",
@@ -46,8 +50,11 @@
     "husky": "^8.0.3",
     "jest": "^29.7.0",
     "lint-staged": "^15.1.0",
+    "pg": "^8.20.0",
+    "pg-mem": "^3.0.14",
     "prettier": "^3.1.0",
     "prisma": "^7.6.0",
+    "ts-jest": "^29.4.9",
     "tsx": "^4.21.0",
     "typescript": "~5.9.3"
   },

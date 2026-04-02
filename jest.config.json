@@ -1,6 +1,19 @@
 {
   "testEnvironment": "node",
-  "globalSetup": "<rootDir>/src/test/globalSetup.js",
-  "globalTeardown": "<rootDir>/src/test/globalTeardown.js",
-  "setupFilesAfterEnv": ["<rootDir>/src/test/setupFileAfterEnv.js"]
+  "globalSetup": "<rootDir>/src/test/globalSetup.ts",
+  "globalTeardown": "<rootDir>/src/test/globalTeardown.ts",
+  "setupFilesAfterEnv": ["<rootDir>/src/test/setupFileAfterEnv.ts"],
+  "transform": {
+    "^.+\\.tsx?$": [
+      "ts-jest",
+      {
+        "useESM": true,
+        "tsconfig": "<rootDir>/tsconfig.json",
+        "diagnostics": {
+          "ignoreCodes": [151002]
+        }
+      }
+    ]
+  },
+  "extensionsToTreatAsEsm": [".ts"]
 }
