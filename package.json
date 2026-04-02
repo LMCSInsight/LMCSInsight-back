@@ -6,8 +6,11 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
+    "lint": "eslint src --ext .js,.jsx,.ts,.tsx",
+    "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js",
     "postinstall": "prisma generate",
     "start": "node dist/server.js",
+    "prepare": "husky install",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:push": "prisma db push",
@@ -17,7 +20,7 @@
     "db:recreate-views": "tsx scripts/recreate-views.ts"
   },
   "dependencies": {
-    "@prisma/client": "^6.0.0",
+    "@prisma/client": "^7.6.0",
     "bcrypt": "^6.0.0",
     "cors": "^2.8.6",
     "dotenv": "^17.3.1",
@@ -27,13 +30,31 @@
     "zod": "^3.24.0"
   },
   "devDependencies": {
+    "@commitlint/cli": "^18.4.3",
+    "@commitlint/config-conventional": "^18.4.3",
     "@types/bcrypt": "^6.0.0",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^25.5.0",
-    "prisma": "^6.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.57.1",
+    "@typescript-eslint/parser": "^8.57.1",
+    "eslint": "^8.57.1",
+    "eslint-config-prettier": "^9.0.0",
+    "eslint-plugin-jsx-a11y": "^6.8.0",
+    "eslint-plugin-react": "^7.33.2",
+    "husky": "^8.0.3",
+    "jest": "^29.7.0",
+    "lint-staged": "^15.1.0",
+    "prettier": "^3.1.0",
+    "prisma": "^7.6.0",
     "tsx": "^4.21.0",
     "typescript": "~5.9.3"
+  },
+  "lint-staged": {
+    "**/*.{js,jsx,ts,tsx}": [
+      "npx prettier --write",
+      "npx eslint --fix"
+    ]
   }
 }
