@@ -15,5 +15,9 @@
       }
     ]
   },
-  "extensionsToTreatAsEsm": [".ts"]
+  "extensionsToTreatAsEsm": [".ts"],
+  "moduleNameMapper": {
+    "^\\.\\./db/models/index\\.js$": "<rootDir>/src/test/mocks/studentModelMock.ts",
+    "^(\\.{1,2}/.*)\\.js$": "$1"
+  }
 }

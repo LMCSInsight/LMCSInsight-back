@@ -1,13 +1,17 @@
-import express from "express";
-import routes from "./routes/index.js";
+import express from 'express'
+import cors from 'cors'
+import bodyParser from 'body-parser'
 
-const app = express();
+import { studentsRoutes } from './routes/students.js'
 
-app.use(express.json());
-app.use("/api", routes);
+const app = express()
+app.use(cors())
+app.use(bodyParser.json())
 
-app.get("/health", (_req, res) => {
-  res.json({ status: "ok", timestamp: new Date().toISOString() });
-});
+studentsRoutes(app)
 
-export default app;
+app.get('/', (_req, res) => {
+  res.send('Wesh Chabiba!')
+})
+
+export { app }
