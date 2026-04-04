@@ -1,5 +1,5 @@
 import { describe, test, expect } from '@jest/globals'
-import { createStudent } from '../services/students.js' // your service
+import { createStudent, getStudents } from '../services/students.js' // your service
 
 describe('creating students', () => {
   test('with all parameters should succeed', async () => {
@@ -92,4 +92,18 @@ describe('creating students', () => {
 
     await expect(createStudent(student)).rejects.toThrow('level is required')
   })
+})
+
+describe('fetching students', () => {
+  test('should return an array of students', async () => {
+    const students = await getStudents()
+    expect(Array.isArray(students)).toBe(true)    
+
+    //additional checks if there are students in the database
+    if (students.length > 0) {
+      expect(students).toHaveProperty('id')
+      expect(students).toHaveProperty('firstName')
+      expect(students).toHaveProperty('email')
+    }
+    })
 })
