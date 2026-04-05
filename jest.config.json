@@ -2,6 +2,7 @@
   "testEnvironment": "node",
   "globalSetup": "<rootDir>/src/test/globalSetup.ts",
   "globalTeardown": "<rootDir>/src/test/globalTeardown.ts",
+  "testPathIgnorePatterns": ["<rootDir>/dist/", "<rootDir>/node_modules/"],
   "setupFilesAfterEnv": ["<rootDir>/src/test/setupFileAfterEnv.ts"],
   "transform": {
     "^.+\\.tsx?$": [
