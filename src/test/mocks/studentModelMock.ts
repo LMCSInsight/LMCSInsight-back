@@ -2,7 +2,10 @@ type CreateArgs<T> = {
   data: T
 }
 
+type MockStudent = Record<string, unknown> & { id: string }
+
 let nextId = 1
+const students: MockStudent[] = []
 
 export const StudentModel = {
   async create<T extends Record<string, unknown>>({ data }: CreateArgs<T>) {
@@ -11,12 +14,22 @@ export const StudentModel = {
       ...data,
     }
     nextId += 1
+    students.push(created)
+
     return created
   },
-  async findMany() { return [] },
-  async findUnique() { return null },
-  async update() { return {} },
-  async delete() { return {} }
+  async findMany() {
+    return students
+  },
+  async findUnique() {
+    return null
+  },
+  async update() {
+    return {}
+  },
+  async delete() {
+    return {}
+  },
 }
 
 export const SupervisionModel = {
@@ -28,10 +41,18 @@ export const SupervisionModel = {
     nextId += 1
     return created
   },
-  async findMany() { return [] },
-  async findUnique() { return null },
-  async update() { return {} },
-  async delete() { return {} }
+  async findMany() {
+    return []
+  },
+  async findUnique() {
+    return null
+  },
+  async update() {
+    return {}
+  },
+  async delete() {
+    return {}
+  },
 }
 
 export const SupervisionSupervisorModel = {
@@ -43,7 +64,9 @@ export const SupervisionSupervisorModel = {
     nextId += 1
     return created
   },
-  async deleteMany() { return { count: 1 } }
+  async deleteMany() {
+    return { count: 1 }
+  },
 }
 
 export const ChercheurModel = {
@@ -54,5 +77,5 @@ export const ChercheurModel = {
     }
     nextId += 1
     return created
-  }
+  },
 }

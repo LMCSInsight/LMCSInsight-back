@@ -1,5 +1,5 @@
 import { describe, test, expect } from '@jest/globals'
-import { createStudent } from '../services/students.js' // your service
+import { createStudent, getStudents } from '../services/students.js' // your service
 
 describe('creating students', () => {
   test('with all parameters should succeed', async () => {
@@ -91,5 +91,12 @@ describe('creating students', () => {
     }
 
     await expect(createStudent(student)).rejects.toThrow('level is required')
+  })
+})
+
+describe('fetching students', () => {
+  test('should return an array of students', async () => {
+    const students = await getStudents()
+    expect(Array.isArray(students)).toBe(true)
   })
 })

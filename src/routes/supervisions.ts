@@ -6,17 +6,21 @@ import {
   updateSupervision,
   deleteSupervision,
   assignSupervisor,
-  removeSupervisor
+  removeSupervisor,
 } from '../services/supervisions.js'
+
+const getErrorMessage = (err: unknown): string => {
+  return err instanceof Error ? err.message : 'Unexpected error'
+}
 
 export function supervisionsRoutes(app: Application) {
   app.post('/api/v1/supervisions', async (req: Request, res: Response) => {
     try {
       const supervision = await createSupervision(req.body)
       res.status(201).json(supervision)
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('error creating supervision', err)
-      res.status(400).json({ error: err.message })
+      res.status(400).json({ error: getErrorMessage(err) })
     }
   })
 
@@ -24,9 +28,9 @@ export function supervisionsRoutes(app: Application) {
     try {
       const supervisions = await getSupervisions()
       res.json(supervisions)
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('error fetching supervisions', err)
-      res.status(500).json({ error: err.message })
+      res.status(500).json({ error: getErrorMessage(err) })
     }
   })
 
@@ -38,50 +42,68 @@ export function supervisionsRoutes(app: Application) {
         return
       }
       res.json(supervision)
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('error fetching supervision', err)
-      res.status(500).json({ error: err.message })
+      res.status(500).json({ error: getErrorMessage(err) })
     }
   })
 
   app.put('/api/v1/supervisions/:id', async (req: Request, res: Response) => {
     try {
-      const supervision = await updateSupervision(req.params.id as string, req.body)
+      const supervision = await updateSupervision(
+        req.params.id as string,
+        req.body,
+      )
       res.json(supervision)
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('error updating supervision', err)
-      res.status(400).json({ error: err.message })
+      res.status(400).json({ error: getErrorMessage(err) })
     }
   })
 
-  app.delete('/api/v1/supervisions/:id', async (req: Request, res: Response) => {
-    try {
-      await deleteSupervision(req.params.id as string)
-      res.status(204).end()
-    } catch (err: any) {
-      console.error('error deleting supervision', err)
-      res.status(500).json({ error: err.message })
-    }
-  })
+  app.delete(
+    '/api/v1/supervisions/:id',
+    async (req: Request, res: Response) => {
+      try {
+        await deleteSupervision(req.params.id as string)
+        res.status(204).end()
+      } catch (err: unknown) {
+        console.error('error deleting supervision', err)
+        res.status(500).json({ error: getErrorMessage(err) })
+      }
+    },
+  )
 
   // Supervisor assignment operations
-  app.post('/api/v1/supervisions/:id/supervisors', async (req: Request, res: Response) => {
-    try {
-      const assignment = await assignSupervisor(req.params.id as string, req.body)
-      res.status(201).json(assignment)
-    } catch (err: any) {
-      console.error('error assigning supervisor', err)
-      res.status(400).json({ error: err.message })
-    }
-  })
+  app.post(
+    '/api/v1/supervisions/:id/supervisors',
+    async (req: Request, res: Response) => {
+      try {
+        const assignment = await assignSupervisor(
+          req.params.id as string,
+          req.body,
+        )
+        res.status(201).json(assignment)
+      } catch (err: unknown) {
+        console.error('error assigning supervisor', err)
+        res.status(400).json({ error: getErrorMessage(err) })
+      }
+    },
+  )
 
-  app.delete('/api/v1/supervisions/:id/supervisors/:supervisorId', async (req: Request, res: Response) => {
-    try {
-      await removeSupervisor(req.params.id as string, req.params.supervisorId as string)
-      res.status(204).end()
-    } catch (err: any) {
-      console.error('error removing supervisor', err)
-      res.status(500).json({ error: err.message })
-    }
-  })
+  app.delete(
+    '/api/v1/supervisions/:id/supervisors/:supervisorId',
+    async (req: Request, res: Response) => {
+      try {
+        await removeSupervisor(
+          req.params.id as string,
+          req.params.supervisorId as string,
+        )
+        res.status(204).end()
+      } catch (err: unknown) {
+        console.error('error removing supervisor', err)
+        res.status(500).json({ error: getErrorMessage(err) })
+      }
+    },
+  )
 }

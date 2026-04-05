@@ -1,5 +1,6 @@
 {
   "testEnvironment": "node",
+  "testPathIgnorePatterns": ["<rootDir>/dist/", "<rootDir>/node_modules/"],
   "globalSetup": "<rootDir>/src/test/globalSetup.ts",
   "globalTeardown": "<rootDir>/src/test/globalTeardown.ts",
   "testPathIgnorePatterns": ["<rootDir>/dist/", "<rootDir>/node_modules/"],
