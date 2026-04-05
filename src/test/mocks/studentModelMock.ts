@@ -3,6 +3,7 @@ type CreateArgs<T> = {
 }
 
 let nextId = 1
+const students: any[] = []
 
 export const StudentModel = {
   async create<T extends Record<string, unknown>>({ data }: CreateArgs<T>) {
@@ -13,6 +14,11 @@ export const StudentModel = {
 
     nextId += 1
 
+    students.push(created)
+
     return created
+  },
+  async findMany() {
+    return students
   },
 }

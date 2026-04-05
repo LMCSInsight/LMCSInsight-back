@@ -20,3 +20,7 @@ export async function createStudent(input: CreateStudentInput) {
     data: validated,
   })
 }
+
+export async function getStudents() {
+  return StudentModel.findMany()
+}
