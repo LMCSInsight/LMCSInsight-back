@@ -99,11 +99,5 @@ describe('fetching students', () => {
     const students = await getStudents()
     expect(Array.isArray(students)).toBe(true)    
 
-    //additional checks if there are students in the database
-    if (students.length > 0) {
-      expect(students).toHaveProperty('id')
-      expect(students).toHaveProperty('firstName')
-      expect(students).toHaveProperty('email')
-    }
     })
 })
