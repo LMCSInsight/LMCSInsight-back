@@ -21,8 +21,9 @@ export const StudentModel = {
   async findMany() {
     return students
   },
-  async findUnique() {
-    return null
+  async findUnique({ where }: { where: { id: string } }) {
+    const student = students.find(s => s.id === where.id)
+    return student || null
   },
   async update() {
     return {}

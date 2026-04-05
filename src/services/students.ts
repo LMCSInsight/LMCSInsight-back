@@ -24,3 +24,9 @@ export async function createStudent(input: CreateStudentInput) {
 export async function getStudents() {
   return StudentModel.findMany()
 }
+
+export async function getStudentByIdId(id: string) {
+  return StudentModel.findUnique({
+    where: { id: id }
+  })
+}
