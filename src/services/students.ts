@@ -30,3 +30,18 @@ export async function getStudentByIdId(id: string) {
     where: { id: id }
   })
 }
+
+export async function updateStudent(id : string, input: Partial<CreateStudentInput>) {
+  const validated = createStudentSchema.partial().parse(input)
+
+  return StudentModel.update({
+    where: { id},
+    data : validated,
+  })
+}
+
+export async function deleteStudent(id: string) {
+  return StudentModel.delete({
+    where: { id }
+  })
+}

@@ -25,11 +25,27 @@ export const StudentModel = {
     const student = students.find(s => s.id === where.id)
     return student || null
   },
-  async update() {
-    return {}
+  async update<T extends Record<string, unknown>>({ where, data }: { where: { id: string }, data: T }) {
+    const index = students.findIndex(s => s.id === where.id);
+  
+    if (index === -1) return null; 
+  
+    const updatedStudent = {
+      ...students[index],
+      ...data
+    };
+  
+    students[index] = updatedStudent;
+  
+    return updatedStudent;
   },
-  async delete() {
-    return {}
+  async delete({ where }: { where: { id: string } }) {
+    const index = students.findIndex(s => s.id === where.id);
+    if (index === -1) return null;
+  
+    const deleted = students[index];
+    students.splice(index, 1); 
+    return deleted;
   },
 }
 
