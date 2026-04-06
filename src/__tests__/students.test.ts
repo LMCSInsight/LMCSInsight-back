@@ -1,5 +1,5 @@
 import { describe, test, expect } from '@jest/globals'
-import { createStudent, getStudentByIdId, getStudents } from '../services/students.js' // your service
+import { createStudent, getStudentByIdId, getStudents, updateStudent } from '../services/students.js' // your service
 
 describe('creating students', () => {
   test('with all parameters should succeed', async () => {
@@ -133,4 +133,30 @@ describe('fetching student by id', () => {
 
     expect(fetchedStudent).toBeNull()
     })
+})
+
+describe('updating student', () => {
+  test('should update the student successfully', async () => {
+    const studentData = {
+      firstName: 'Youcef',
+      lastName: 'AMERELKHEDOUD',
+      email: 'oy_amerelkhedoud@esi.dz',
+      institution: 'ESI Algiers',
+      level: 'L2',
+      specialty: 'Computer Science',
+    }
+
+    const createdStudent = await createStudent(studentData)
+
+    const updatedData = {
+      firstName: 'Youcef Updated',
+      level: 'L3',
+    }
+
+    const updatedStudent = await updateStudent(createdStudent.id, updatedData)
+
+    expect(updatedStudent.id).toBe(createdStudent.id)
+    expect(updatedStudent.firstName).toBe(updatedData.firstName)
+    expect(updatedStudent.level).toBe(updatedData.level)
+  })
 })
