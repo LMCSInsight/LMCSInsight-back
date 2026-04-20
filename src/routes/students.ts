@@ -1,6 +1,11 @@
 import type { Application, Request, Response } from 'express'
-import { createStudent, deleteStudent, getStudentByIdId, getStudents, updateStudent} from '../services/students.js'
-import { ca } from 'zod/v4/locales'
+import {
+  createStudent,
+  deleteStudent,
+  getStudentById,
+  getStudents,
+  updateStudent,
+} from '../services/students.js'
 
 export function studentsRoutes(app: Application) {
   app.post('/api/v1/students', async (req: Request, res: Response) => {
@@ -13,9 +18,16 @@ export function studentsRoutes(app: Application) {
     }
   })
 
-  app.get('/api/v1/students', async (_req: Request, res: Response) => {
+  app.get('/api/v1/students', async (req: Request, res: Response) => {
     try {
-      const students = await getStudents()
+      const { search, institution, level, page, limit } = req.query
+      const students = await getStudents({
+        search: search as string | undefined,
+        institution: institution as string | undefined,
+        level: level as string | undefined,
+        page: page ? Number(page) : undefined,
+        limit: limit ? Number(limit) : undefined,
+      })
       return res.json(students)
     } catch (err) {
       console.error('error fetching students', err)
@@ -31,7 +43,7 @@ export function studentsRoutes(app: Application) {
     }
 
     try {
-      const student = await getStudentByIdId(id)
+      const student = await getStudentById(id)
       if (student === null) return res.status(404).end()
       return res.json(student)
     } catch (err) {

@@ -2,7 +2,6 @@ import { describe, test, expect } from '@jest/globals'
 import {
   createStudent,
   deleteStudent,
-  getStudentByIdId,
   getStudents,
   updateStudent,
 } from '../services/students.js'

@@ -8,6 +8,16 @@ import {
   assignSupervisor,
   removeSupervisor,
 } from '../services/supervisions.js'
+import { requireAuth } from '../middleware/authMiddleware.js'
+import { requireRole } from '../middleware/roleMiddleware.js'
+import {
+  validateSchema,
+  rejectSchema,
+  reviseSchema,
+  validateSupervision,
+  rejectSupervision,
+  reviseSupervision,
+} from '../services/validation.js'
 
 const getErrorMessage = (err: unknown): string => {
   return err instanceof Error ? err.message : 'Unexpected error'
@@ -24,9 +34,28 @@ export function supervisionsRoutes(app: Application) {
     }
   })
 
-  app.get('/api/v1/supervisions', async (_req: Request, res: Response) => {
+  app.get('/api/v1/supervisions', async (req: Request, res: Response) => {
     try {
-      const supervisions = await getSupervisions()
+      const {
+        type,
+        status,
+        validationStatus,
+        academicYear,
+        supervisorId,
+        search,
+        page,
+        limit,
+      } = req.query
+      const supervisions = await getSupervisions({
+        type: type as string | undefined,
+        status: status as string | undefined,
+        validationStatus: validationStatus as string | undefined,
+        academicYear: academicYear as string | undefined,
+        supervisorId: supervisorId as string | undefined,
+        search: search as string | undefined,
+        page: page ? Number(page) : undefined,
+        limit: limit ? Number(limit) : undefined,
+      })
       res.json(supervisions)
     } catch (err: unknown) {
       console.error('error fetching supervisions', err)
@@ -103,6 +132,68 @@ export function supervisionsRoutes(app: Application) {
       } catch (err: unknown) {
         console.error('error removing supervisor', err)
         res.status(500).json({ error: getErrorMessage(err) })
+      }
+    },
+  )
+
+  // ── Validation actions ───────────────────────────────────────────────────────
+
+  app.post(
+    '/api/v1/supervisions/:id/validate',
+    requireAuth,
+    requireRole('ASSISTANT'),
+    async (req: Request, res: Response) => {
+      try {
+        const body = validateSchema.parse(req.body)
+        const supervision = await validateSupervision({
+          supervisionId: req.params.id as string,
+          validatorId: req.user!.id,
+          ...body,
+        })
+        res.json(supervision)
+      } catch (err: unknown) {
+        console.error('error validating supervision', err)
+        res.status(400).json({ error: getErrorMessage(err) })
+      }
+    },
+  )
+
+  app.post(
+    '/api/v1/supervisions/:id/reject',
+    requireAuth,
+    requireRole('ASSISTANT'),
+    async (req: Request, res: Response) => {
+      try {
+        const body = rejectSchema.parse(req.body)
+        const supervision = await rejectSupervision({
+          supervisionId: req.params.id as string,
+          validatorId: req.user!.id,
+          ...body,
+        })
+        res.json(supervision)
+      } catch (err: unknown) {
+        console.error('error rejecting supervision', err)
+        res.status(400).json({ error: getErrorMessage(err) })
+      }
+    },
+  )
+
+  app.post(
+    '/api/v1/supervisions/:id/revise',
+    requireAuth,
+    requireRole('ASSISTANT'),
+    async (req: Request, res: Response) => {
+      try {
+        const body = reviseSchema.parse(req.body)
+        const supervision = await reviseSupervision({
+          supervisionId: req.params.id as string,
+          validatorId: req.user!.id,
+          ...body,
+        })
+        res.json(supervision)
+      } catch (err: unknown) {
+        console.error('error revising supervision', err)
+        res.status(400).json({ error: getErrorMessage(err) })
       }
     },
   )
