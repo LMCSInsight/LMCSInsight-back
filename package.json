@@ -16,6 +16,8 @@
     "db:migrate": "prisma migrate dev",
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
+    "db:seed:demo-extra": "tsx scripts/seed-demo-extra.ts",
+    "db:seed:test-users": "tsx scripts/seed-test-users.ts",
     "db:studio": "prisma studio",
     "db:drop-views": "tsx scripts/drop-views.ts",
     "db:recreate-views": "tsx scripts/recreate-views.ts",

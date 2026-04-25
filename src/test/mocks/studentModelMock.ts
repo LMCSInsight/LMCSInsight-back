@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto'
+
 type CreateArgs<T> = {
   data: T
 }
@@ -21,31 +23,40 @@ export const StudentModel = {
   async findMany() {
     return students
   },
+  async count() {
+    return students.length
+  },
   async findUnique({ where }: { where: { id: string } }) {
-    const student = students.find(s => s.id === where.id)
+    const student = students.find((s) => s.id === where.id)
     return student || null
   },
-  async update<T extends Record<string, unknown>>({ where, data }: { where: { id: string }, data: T }) {
-    const index = students.findIndex(s => s.id === where.id);
-  
-    if (index === -1) return null; 
-  
+  async update<T extends Record<string, unknown>>({
+    where,
+    data,
+  }: {
+    where: { id: string }
+    data: T
+  }) {
+    const index = students.findIndex((s) => s.id === where.id)
+
+    if (index === -1) return null
+
     const updatedStudent = {
       ...students[index],
-      ...data
-    };
-  
-    students[index] = updatedStudent;
-  
-    return updatedStudent;
+      ...data,
+    }
+
+    students[index] = updatedStudent
+
+    return updatedStudent
   },
   async delete({ where }: { where: { id: string } }) {
-    const index = students.findIndex(s => s.id === where.id);
-    if (index === -1) return null;
-  
-    const deleted = students[index];
-    students.splice(index, 1); 
-    return deleted;
+    const index = students.findIndex((s) => s.id === where.id)
+    if (index === -1) return null
+
+    const deleted = students[index]
+    students.splice(index, 1)
+    return deleted
   },
 }
 
@@ -94,5 +105,66 @@ export const ChercheurModel = {
     }
     nextId += 1
     return created
+  },
+}
+
+const themes: Array<Record<string, unknown> & { id: string }> = []
+
+export const ThemeModel = {
+  async create<T extends Record<string, unknown>>({
+    data,
+  }: CreateArgs<T> & { include?: { team: boolean } }) {
+    const created = {
+      id: randomUUID(),
+      ...data,
+      team: null,
+    }
+    themes.push(created)
+    return created
+  },
+  async findMany(
+    {
+      skip = 0,
+      take = 20,
+    }: {
+      where?: object
+      skip?: number
+      take?: number
+      orderBy?: object
+      include?: { team: boolean }
+    } = { skip: 0, take: 20 },
+  ) {
+    return themes.slice(skip, skip + take)
+  },
+  async count() {
+    return themes.length
+  },
+  async findUnique({
+    where,
+  }: {
+    where: { id: string }
+    include?: { team: boolean }
+  }) {
+    return themes.find((t) => t.id === where.id) ?? null
+  },
+  async update<T extends Record<string, unknown>>({
+    where,
+    data,
+  }: {
+    where: { id: string }
+    data: T
+    include?: { team: boolean }
+  }) {
+    const index = themes.findIndex((t) => t.id === where.id)
+    if (index === -1) return null
+    const updated = { ...themes[index], ...data, team: null }
+    themes[index] = updated
+    return updated
+  },
+  async delete({ where }: { where: { id: string } }) {
+    const index = themes.findIndex((t) => t.id === where.id)
+    if (index === -1) return null
+    const [deleted] = themes.splice(index, 1)
+    return deleted
   },
 }

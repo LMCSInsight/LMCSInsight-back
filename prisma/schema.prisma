@@ -1,11 +1,6 @@
 // ============================================
 // COMPLETE PRISMA SCHEMA FOR LMCS PLATFORM
-// VERSION 3.0 - With Chercheur Integration
-// ============================================
-//
-// Matches the full SQL database (create_complete_database.sql).
-// See backend/COMPLETE_DATABASE_DOCUMENTATION.md for architecture.
-//
+// VERSION 4.0
 // ============================================
 
 generator client {
@@ -20,11 +15,9 @@ datasource db {
 // ENUMS
 // ============================================
 
-// Chercheur Enums (map to existing DB values with spaces/hyphens)
 enum Qualite {
-  Enseignant_Chercheur  @map("Enseignant-Chercheur")
+  Enseignant_Chercheur @map("Enseignant-Chercheur")
   Chercheur
-  Doctorant
 }
 
 enum GradeRecherche {
@@ -35,19 +28,16 @@ enum GradeRecherche {
 
 enum StatutChercheur {
   Actif
-  Non_actif             @map("Non actif")
+  Non_actif @map("Non actif")
 }
 
-// System User Enums (keep TEACHER so DB enum is not dropped; app uses RESEARCHER)
 enum UserRole {
   ADMIN
   DIRECTOR
-  TEACHER
   RESEARCHER
   ASSISTANT
 }
 
-// Supervision Enums
 enum SupervisionType {
   PFE
   MASTER
@@ -71,85 +61,95 @@ enum ValidationStatus {
   REVISED
 }
 
+enum Institution {
+  ESI
+  EXTERNE
+}
+
+enum StudentLevel {
+  MASTER
+  DOCTORANT
+}
+
+enum Specialty {
+  SIL
+  SID
+  SIT
+  SIQ
+}
+
+enum NotificationType {
+  VALIDATION_DECISION
+  NEW_SUBMISSION
+  RESUBMISSION
+}
+
 // ============================================
 // MAIN MODELS
 // ============================================
 
 model Team {
-  id          String   @id @default(uuid())
-  name        String   @unique
-  description String?  @db.Text
+  id          String  @id @default(uuid())
+  name        String  @unique
+  description String? @db.Text
 
-  // Relationships
-  chercheurs  Chercheur[]
-  themes      Theme[]
-  users       User[]  // Legacy relationship
+  chercheurs Chercheur[]
+  themes     Theme[]
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("teams")
 }
 
 model Theme {
-  id          String   @id @default(uuid())
+  id          String  @id @default(uuid())
   name        String
-  description String?  @db.Text
+  description String? @db.Text
 
-  // Relationships
-  teamId      String?
-  team        Team?    @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  teamId String?
+  team   Team?   @relation(fields: [teamId], references: [id], onDelete: SetNull)
 
   supervisions Supervision[]
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([teamId])
   @@map("themes")
 }
 
 model Chercheur {
-  // Primary Key - ESI Matricule
   chercheur_id String @id @db.VarChar(50)
 
-  // Basic Information
   nom_complet String @db.VarChar(255)
 
-  // Contact Information
-  mails String[]  // PostgreSQL array
-  tel   String?   @db.VarChar(20)
+  mails String[]
+  tel   String?  @db.VarChar(20)
 
-  // Academic Background
   diplome               String? @db.VarChar(255)
   etablissement_origine String? @db.VarChar(255)
 
-  // Professional Classification
   qualite         Qualite
   grade_recherche GradeRecherche?
 
-  // Status
   statut StatutChercheur @default(Actif)
 
-  // Research Metrics
   hindex Int @default(0)
 
-  // Team Assignment
   equipe_id String?
   team      Team?   @relation(fields: [equipe_id], references: [id], onDelete: SetNull)
 
-  // Online Presence
   url_dblp           String? @db.VarChar(500)
   url_google_scholar String? @db.VarChar(500)
   url_researchgate   String? @db.VarChar(500)
   url_site_personnel String? @db.VarChar(500)
 
-  // Timestamps
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Relationships
-  users                  User[]
+  // 1:1 inverse — one chercheur maps to at most one system user
+  user                    User?
   supervision_supervisors SupervisionSupervisor[]
 
   @@index([nom_complet])
@@ -164,55 +164,55 @@ model Chercheur {
 model User {
   id          String   @id @default(uuid())
   email       String   @unique
-  password    String   // Hashed with bcrypt
+  password    String
   firstName   String
   lastName    String
   role        UserRole
   phoneNumber String?
   isActive    Boolean  @default(true)
 
-  // Link to chercheur profile (optional)
-  chercheur_id String?
+  // 1:1 link to chercheur profile
+  chercheur_id String?    @unique
   chercheur    Chercheur? @relation(fields: [chercheur_id], references: [chercheur_id], onDelete: SetNull)
 
-  // Legacy team reference
-  teamId      String?
-  team        Team?    @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  validations   ValidationLog[]
+  auditLogs     AuditLog[]
+  notifications Notification[]
 
-  // Relationships
-  validations ValidationLog[]
-  auditLogs   AuditLog[]
+  /// Supervision records created in-app by this assistant (operational user).
+  submittedSupervisions Supervision[] @relation("SupervisionSubmittedBy")
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([email])
   @@index([role])
   @@index([chercheur_id])
-  @@index([teamId])
   @@index([role, isActive])
   @@map("users")
 }
 
 model Student {
-  id          String   @id @default(uuid())
+  id          String       @id @default(uuid())
   firstName   String
   lastName    String
-  email       String   @unique
-  institution String
-  level       String
-  specialty   String?
+  email       String       @unique
+  institution Institution
+  level       StudentLevel
+  specialty   Specialty?
 
-  // Relationships
+  deletedAt DateTime?
+
   supervisions Supervision[]
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([email])
   @@index([institution])
   @@index([level])
   @@index([lastName, firstName])
+  @@index([deletedAt])
   @@map("students")
 }
 
@@ -223,7 +223,6 @@ model Supervision {
   description     String?           @db.Text
   status          SupervisionStatus @default(IN_PROGRESS)
 
-  // Validation fields
   validationStatus ValidationStatus @default(PENDING)
   validatedAt      DateTime?
   validationNotes  String?          @db.Text
@@ -232,22 +231,28 @@ model Supervision {
   startDate       DateTime
   expectedEndDate DateTime?
   actualEndDate   DateTime?
-  keywords        String[]  // PostgreSQL array
+  keywords        String[]
 
-  // Relationships
-  studentId       String
-  student         Student           @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  deletedAt DateTime?
 
-  themeId         String?
-  theme           Theme?            @relation(fields: [themeId], references: [id], onDelete: SetNull)
+  studentId String
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
-  supervisors     SupervisionSupervisor[]
-  validations     ValidationLog[]
-  auditLogs       AuditLog[]
+  themeId String?
+  theme   Theme?  @relation(fields: [themeId], references: [id], onDelete: SetNull)
 
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
+  submittedByUserId String?
+  submittedBy         User?   @relation("SupervisionSubmittedBy", fields: [submittedByUserId], references: [id], onDelete: SetNull)
 
+  supervisors    SupervisionSupervisor[]
+  validations    ValidationLog[]
+  auditLogs      AuditLog[]
+  notifications  Notification[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([submittedByUserId])
   @@index([type])
   @@index([status])
   @@index([validationStatus])
@@ -260,25 +265,24 @@ model Supervision {
   @@index([startDate])
   @@index([validatedAt])
   @@index([updatedAt(sort: Desc)])
+  @@index([deletedAt])
   @@map("supervisions")
 }
 
 model SupervisionSupervisor {
-  id                  String      @id @default(uuid())
+  id String @id @default(uuid())
 
-  // Foreign Keys
-  supervisionId       String
-  supervision         Supervision @relation(fields: [supervisionId], references: [id], onDelete: Cascade)
+  supervisionId String
+  supervision   Supervision @relation(fields: [supervisionId], references: [id], onDelete: Cascade)
 
-  supervisorId        String      @db.VarChar(50)  // References Chercheur.chercheur_id
-  supervisor          Chercheur   @relation(fields: [supervisorId], references: [chercheur_id], onDelete: Cascade)
+  supervisorId String    @db.VarChar(50)
+  supervisor   Chercheur @relation(fields: [supervisorId], references: [chercheur_id], onDelete: Cascade)
 
-  // Additional fields
-  contributionPercent Int         @default(100)
-  isMainSupervisor    Boolean     @default(false)
-  isExternal          Boolean     @default(false)
+  contributionPercent Int     @default(100)
+  isMainSupervisor    Boolean @default(false)
+  isExternal          Boolean @default(false)
 
-  createdAt           DateTime    @default(now())
+  createdAt DateTime @default(now())
 
   @@unique([supervisionId, supervisorId])
   @@index([supervisionId])
@@ -288,27 +292,21 @@ model SupervisionSupervisor {
 }
 
 model ValidationLog {
-  id            String           @id @default(uuid())
+  id String @id @default(uuid())
 
-  // What was validated
   supervisionId String
-  supervision   Supervision      @relation(fields: [supervisionId], references: [id], onDelete: Cascade)
+  supervision   Supervision @relation(fields: [supervisionId], references: [id], onDelete: Cascade)
 
-  // Who validated it
-  validatorId   String
-  validator     User             @relation(fields: [validatorId], references: [id], onDelete: Cascade)
+  validatorId String
+  validator   User   @relation(fields: [validatorId], references: [id], onDelete: Cascade)
 
-  // Validation details
-  status        ValidationStatus
-  comments      String?          @db.Text
+  status    ValidationStatus
+  comments  String?          @db.Text
 
-  // What fields were checked
   fieldsChecked Json?
-
-  // Issues found
   issues        Json?
 
-  createdAt     DateTime         @default(now())
+  createdAt DateTime @default(now())
 
   @@index([supervisionId])
   @@index([validatorId])
@@ -320,22 +318,21 @@ model ValidationLog {
 }
 
 model AuditLog {
-  id            String   @id @default(uuid())
-  action        String
-  entityType    String
-  entityId      String?  @db.VarChar(255)  // Supports both UUID and chercheur_id
-  changes       Json?
-  ipAddress     String?  @db.VarChar(45)
-  userAgent     String?  @db.Text
+  id         String  @id @default(uuid())
+  action     String
+  entityType String
+  entityId   String? @db.VarChar(255)
+  changes    Json?
+  ipAddress  String? @db.VarChar(45)
+  userAgent  String? @db.Text
 
-  // Relationships
-  userId        String?
-  user          User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   supervisionId String?
   supervision   Supervision? @relation(fields: [supervisionId], references: [id], onDelete: Cascade)
 
-  createdAt     DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@index([action])
   @@index([entityType])
@@ -346,4 +343,26 @@ model AuditLog {
   @@index([userId, createdAt(sort: Desc)])
   @@index([entityType, entityId])
   @@map("audit_logs")
+}
+
+model Notification {
+  id      String           @id @default(uuid())
+  type    NotificationType
+  title   String
+  message String           @db.Text
+  readAt  DateTime?
+
+  recipientId String
+  recipient   User   @relation(fields: [recipientId], references: [id], onDelete: Cascade)
+
+  supervisionId String?
+  supervision   Supervision? @relation(fields: [supervisionId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([recipientId])
+  @@index([recipientId, readAt])
+  @@index([supervisionId])
+  @@index([createdAt(sort: Desc)])
+  @@map("notifications")
 }

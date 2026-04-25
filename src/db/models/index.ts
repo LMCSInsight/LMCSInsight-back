@@ -10,3 +10,4 @@ export const SupervisionModel = prisma.supervision
 export const SupervisionSupervisorModel = prisma.supervisionSupervisor
 export const ValidationLogModel = prisma.validationLog
 export const AuditLogModel = prisma.auditLog
+export const NotificationModel = prisma.notification

@@ -136,7 +136,7 @@ async function main() {
       lastName: 'Benali',
       email: 'm.benali@esi.dz',
       institution: 'ESI',
-      level: 'Master',
+      level: 'MASTER',
       specialty: 'SIL',
     },
     {
@@ -144,7 +144,7 @@ async function main() {
       lastName: 'Rahmani',
       email: 'a.rahmani@esi.dz',
       institution: 'ESI',
-      level: 'Master',
+      level: 'MASTER',
       specialty: 'SID',
     },
     {
@@ -152,7 +152,7 @@ async function main() {
       lastName: 'Khelil',
       email: 'y.khelil@esi.dz',
       institution: 'ESI',
-      level: 'Master',
+      level: 'MASTER',
       specialty: 'SIT',
     },
     {
@@ -160,7 +160,7 @@ async function main() {
       lastName: 'Tlemçani',
       email: 'n.tlemcani@esi.dz',
       institution: 'ESI',
-      level: 'Master',
+      level: 'MASTER',
       specialty: 'SIQ',
     },
     {
@@ -168,7 +168,7 @@ async function main() {
       lastName: 'Benmoussa',
       email: 'a.benmoussa@esi.dz',
       institution: 'ESI',
-      level: 'Master',
+      level: 'MASTER',
       specialty: 'SIL',
     },
     {
@@ -176,7 +176,7 @@ async function main() {
       lastName: 'Ziani',
       email: 'r.ziani@esi.dz',
       institution: 'ESI',
-      level: 'Master',
+      level: 'MASTER',
       specialty: 'SID',
     },
     {
@@ -184,7 +184,7 @@ async function main() {
       lastName: 'Hadj',
       email: 's.hadj@esi.dz',
       institution: 'ESI',
-      level: 'Master',
+      level: 'MASTER',
       specialty: 'SIT',
     },
     {
@@ -192,7 +192,7 @@ async function main() {
       lastName: 'Djebara',
       email: 'y.djebara@esi.dz',
       institution: 'ESI',
-      level: 'Master',
+      level: 'MASTER',
       specialty: 'SIL',
     },
     // ESI Doctorants
@@ -201,7 +201,7 @@ async function main() {
       lastName: 'Lahmar',
       email: 'k.lahmar@esi.dz',
       institution: 'ESI',
-      level: 'Doctorant',
+      level: 'DOCTORANT',
       specialty: 'SIL',
     },
     {
@@ -209,7 +209,7 @@ async function main() {
       lastName: 'Saïdani',
       email: 'i.saidani@esi.dz',
       institution: 'ESI',
-      level: 'Doctorant',
+      level: 'DOCTORANT',
       specialty: 'SID',
     },
     {
@@ -217,7 +217,7 @@ async function main() {
       lastName: 'Amrani',
       email: 'r.amrani@esi.dz',
       institution: 'ESI',
-      level: 'Doctorant',
+      level: 'DOCTORANT',
       specialty: 'SIT',
     },
     {
@@ -225,7 +225,7 @@ async function main() {
       lastName: 'Boudiaf',
       email: 's.boudiaf@esi.dz',
       institution: 'ESI',
-      level: 'Doctorant',
+      level: 'DOCTORANT',
       specialty: 'SIQ',
     },
     {
@@ -233,7 +233,7 @@ async function main() {
       lastName: 'Chérif',
       email: 'i.cherif@esi.dz',
       institution: 'ESI',
-      level: 'Doctorant',
+      level: 'DOCTORANT',
       specialty: 'SIL',
     },
     // Extérieur students
@@ -241,48 +241,48 @@ async function main() {
       firstName: 'Anis',
       lastName: 'Ghezali',
       email: 'a.ghezali@usthb.dz',
-      institution: 'Extérieur',
-      level: 'Master',
+      institution: 'EXTERNE',
+      level: 'MASTER',
       specialty: 'SIL',
     },
     {
       firstName: 'Lydia',
       lastName: 'Boudjelal',
       email: 'l.boudjelal@usthb.dz',
-      institution: 'Extérieur',
-      level: 'Master',
+      institution: 'EXTERNE',
+      level: 'MASTER',
       specialty: 'SID',
     },
     {
       firstName: 'Fares',
       lastName: 'Ouali',
       email: 'f.ouali@umbb.dz',
-      institution: 'Extérieur',
-      level: 'Doctorant',
+      institution: 'EXTERNE',
+      level: 'DOCTORANT',
       specialty: 'SIT',
     },
     {
       firstName: 'Meriem',
       lastName: 'Slimani',
       email: 'm.slimani@univ-alger.dz',
-      institution: 'Extérieur',
-      level: 'Doctorant',
+      institution: 'EXTERNE',
+      level: 'DOCTORANT',
       specialty: 'SIQ',
     },
     {
       firstName: 'Bilal',
       lastName: 'Hammoudi',
       email: 'b.hammoudi@usthb.dz',
-      institution: 'Extérieur',
-      level: 'Master',
+      institution: 'EXTERNE',
+      level: 'MASTER',
       specialty: 'SIL',
     },
     {
       firstName: 'Wafa',
       lastName: 'Belkacem',
       email: 'w.belkacem@umbb.dz',
-      institution: 'Extérieur',
-      level: 'Master',
+      institution: 'EXTERNE',
+      level: 'MASTER',
       specialty: 'SID',
     },
     {
@@ -290,7 +290,7 @@ async function main() {
       lastName: 'Messaoud',
       email: 'n.messaoud@esi.dz',
       institution: 'ESI',
-      level: 'Master',
+      level: 'MASTER',
       specialty: 'SIQ',
     },
   ]
@@ -313,6 +313,59 @@ async function main() {
   // Helper: find student index by name
   const sid = (firstName: string) =>
     students.find((s) => s.firstName === firstName)!.id
+
+  // ─── Thématiques (labo / informatique) — upsert by name ────────────────────
+  const laboThemes: { name: string; description: string }[] = [
+    {
+      name: 'Traitement du langage naturel (NLP)',
+      description:
+        "Modèles de langage, extraction d'information, traduction et analyse de opinions.",
+    },
+    {
+      name: 'Vision par ordinateur',
+      description:
+        "Détection, segmentation, suivi d'objets et de scènes, applications industrielles ou médicales.",
+    },
+    {
+      name: "Systèmes d'information et intégration d'entreprise",
+      description:
+        'SOA, ESB, interopérabilité, ERP et gouvernance des données.',
+    },
+    {
+      name: 'Bases de données avancées',
+      description:
+        'Bases graphes, entrepôts, cohérence, requêtes analytiques et performance.',
+    },
+    {
+      name: 'Développement logiciel et ingénierie',
+      description:
+        'Méthodologies agiles, qualité, tests, architecture logicielle et rétro-ingénierie.',
+    },
+    {
+      name: 'Optimisation, recherche opérationnelle et aide à la décision',
+      description:
+        'Modélisation, programmation linéaire, métaheuristiques et planification.',
+    },
+    {
+      name: 'Systèmes embarqués et temps réel',
+      description:
+        'Conception fiable, contraintes temps réel, IoT industriel et sûreté de fonctionnement.',
+    },
+  ]
+
+  for (const t of laboThemes) {
+    const existing = await prisma.theme.findFirst({
+      where: { name: t.name },
+    })
+    if (existing) {
+      await prisma.theme.update({
+        where: { id: existing.id },
+        data: { description: t.description },
+      })
+    } else {
+      await prisma.theme.create({ data: t })
+    }
+  }
 
   // ─── Supervisions ─────────────────────────────────────────────────────────────
 
@@ -771,6 +824,7 @@ async function main() {
   console.log('✓ Seed completed:')
   console.log(`  • ${chercheurs.length} chercheurs`)
   console.log(`  • ${studentData.length} students`)
+  console.log(`  • ${laboThemes.length} thématiques (labo)`)
   console.log(`  • ${supervisionsData.length} supervisions`)
 }
 

@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { Prisma } from '@prisma/client'
 import { prisma } from '../db/prisma.js'
+import { notifyAllAssistants } from './notifications.js'
 
 // ─── Zod schemas ──────────────────────────────────────────────────────────────
 
@@ -36,7 +37,82 @@ export const historyFiltersSchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).catch(100).default(20),
 })
 
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+/**
+ * The main supervisor (reviewer) must be the chercheur linked to this user.
+ */
+export async function assertIsMainSupervisor(
+  supervisionId: string,
+  userId: string,
+): Promise<void> {
+  const row = await prisma.supervisionSupervisor.findFirst({
+    where: {
+      supervisionId,
+      isMainSupervisor: true,
+      supervisor: { user: { id: userId, isActive: true } },
+    },
+  })
+  if (!row) {
+    throw new Error('NOT_REVIEWER')
+  }
+}
+
+const reviewerQueueFilter = (userId: string) => ({
+  supervisors: {
+    some: {
+      isMainSupervisor: true,
+      supervisor: { user: { id: userId } },
+    },
+  },
+})
+
+async function notifyAllAssistantsOfValidationDecision(
+  supervisionId: string,
+  validatorId: string,
+  kind: 'VALIDATED' | 'REJECTED' | 'REVISED',
+  details?: { comments?: string; issues?: string[] },
+) {
+  const [user, sup] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: validatorId },
+      select: { firstName: true, lastName: true },
+    }),
+    prisma.supervision.findUnique({
+      where: { id: supervisionId },
+      select: { title: true },
+    }),
+  ])
+  const reviewerName = user
+    ? [user.firstName, user.lastName].filter(Boolean).join(' ').trim()
+    : 'A reviewer'
+  const shortTitle = sup?.title ?? 'A supervision'
+  const suffix =
+    kind === 'VALIDATED'
+      ? 'was validated'
+      : kind === 'REJECTED'
+        ? 'was rejected'
+        : 'was marked to revise'
+  const messageParts = [
+    `by ${reviewerName}.`,
+    details?.comments && details.comments.trim()
+      ? ` ${details.comments.trim()}`
+      : '',
+  ]
+  if (kind !== 'VALIDATED' && details?.issues?.length) {
+    messageParts.push(` Issues: ${details.issues.join('; ')}`)
+  }
+  await notifyAllAssistants({
+    type: 'VALIDATION_DECISION',
+    title: `“${shortTitle}” ${suffix}`,
+    message: `“${shortTitle}” ${suffix}${messageParts.join('')}`,
+    supervisionId,
+  })
+}
+
 // ─── Service functions ─────────────────────────────────────────────────────────
+
+export type ValidationRole = 'RESEARCHER' | 'ASSISTANT' | 'DIRECTOR'
 
 export async function getValidationQueue(params: {
   status?: string
@@ -45,6 +121,8 @@ export async function getValidationQueue(params: {
   academicYear?: string
   page?: number
   limit?: number
+  role: ValidationRole
+  userId: string
 }) {
   const {
     status = 'PENDING',
@@ -53,34 +131,51 @@ export async function getValidationQueue(params: {
     academicYear,
     page = 1,
     limit = 20,
+    role,
+    userId,
   } = params
 
-  const where = {
-    validationStatus: status as
-      | 'PENDING'
-      | 'VALIDATED'
-      | 'REJECTED'
-      | 'REVISED',
-    ...(type && {
+  const andConditions: Prisma.SupervisionWhereInput[] = [
+    {
+      validationStatus: status as
+        | 'PENDING'
+        | 'VALIDATED'
+        | 'REJECTED'
+        | 'REVISED',
+    },
+  ]
+
+  if (type) {
+    andConditions.push({
       type: type as 'PFE' | 'MASTER' | 'PHD' | 'INTERNSHIP' | 'PROJECT',
-    }),
-    ...(academicYear && { academicYear }),
-    ...(search && {
+    })
+  }
+  if (academicYear) {
+    andConditions.push({ academicYear })
+  }
+  if (search) {
+    andConditions.push({
       OR: [
-        { title: { contains: search, mode: 'insensitive' as const } },
+        { title: { contains: search, mode: 'insensitive' } },
         {
           student: {
-            firstName: { contains: search, mode: 'insensitive' as const },
+            firstName: { contains: search, mode: 'insensitive' },
           },
         },
         {
           student: {
-            lastName: { contains: search, mode: 'insensitive' as const },
+            lastName: { contains: search, mode: 'insensitive' },
           },
         },
       ],
-    }),
+    })
   }
+
+  if (role === 'RESEARCHER') {
+    andConditions.push(reviewerQueueFilter(userId))
+  }
+
+  const where: Prisma.SupervisionWhereInput = { AND: andConditions }
 
   const [data, total] = await Promise.all([
     prisma.supervision.findMany({
@@ -108,9 +203,10 @@ export async function validateSupervision(params: {
   fieldsChecked?: Record<string, boolean>
 }) {
   const { supervisionId, validatorId, comments, fieldsChecked } = params
+  await assertIsMainSupervisor(supervisionId, validatorId)
 
-  return prisma.$transaction(async (tx) => {
-    const supervision = await tx.supervision.update({
+  const supervision = await prisma.$transaction(async (tx) => {
+    const sup = await tx.supervision.update({
       where: { id: supervisionId },
       data: {
         validationStatus: 'VALIDATED',
@@ -148,8 +244,17 @@ export async function validateSupervision(params: {
       },
     })
 
-    return supervision
+    return sup
   })
+
+  await notifyAllAssistantsOfValidationDecision(
+    supervisionId,
+    validatorId,
+    'VALIDATED',
+    { comments },
+  )
+
+  return supervision
 }
 
 export async function rejectSupervision(params: {
@@ -159,9 +264,10 @@ export async function rejectSupervision(params: {
   issues: string[]
 }) {
   const { supervisionId, validatorId, comments, issues } = params
+  await assertIsMainSupervisor(supervisionId, validatorId)
 
-  return prisma.$transaction(async (tx) => {
-    const supervision = await tx.supervision.update({
+  const supervision = await prisma.$transaction(async (tx) => {
+    const sup = await tx.supervision.update({
       where: { id: supervisionId },
       data: {
         validationStatus: 'REJECTED',
@@ -197,8 +303,17 @@ export async function rejectSupervision(params: {
       },
     })
 
-    return supervision
+    return sup
   })
+
+  await notifyAllAssistantsOfValidationDecision(
+    supervisionId,
+    validatorId,
+    'REJECTED',
+    { comments, issues },
+  )
+
+  return supervision
 }
 
 export async function reviseSupervision(params: {
@@ -208,9 +323,10 @@ export async function reviseSupervision(params: {
   issues: string[]
 }) {
   const { supervisionId, validatorId, comments, issues } = params
+  await assertIsMainSupervisor(supervisionId, validatorId)
 
-  return prisma.$transaction(async (tx) => {
-    const supervision = await tx.supervision.update({
+  const supervision = await prisma.$transaction(async (tx) => {
+    const sup = await tx.supervision.update({
       where: { id: supervisionId },
       data: {
         validationStatus: 'REVISED',
@@ -246,22 +362,32 @@ export async function reviseSupervision(params: {
       },
     })
 
-    return supervision
+    return sup
   })
+
+  await notifyAllAssistantsOfValidationDecision(
+    supervisionId,
+    validatorId,
+    'REVISED',
+    { comments, issues },
+  )
+
+  return supervision
 }
 
 export async function getValidationHistory(params: {
-  validatorId: string
+  validatorId?: string
+  role: ValidationRole
   status?: string
   from?: string
   to?: string
   page?: number
   limit?: number
 }) {
-  const { validatorId, status, from, to, page = 1, limit = 20 } = params
+  const { validatorId, role, status, from, to, page = 1, limit = 20 } = params
 
-  const where = {
-    validatorId,
+  const where: Prisma.ValidationLogWhereInput = {
+    ...(role === 'RESEARCHER' && validatorId ? { validatorId } : {}),
     ...(status && {
       status: status as 'PENDING' | 'VALIDATED' | 'REJECTED' | 'REVISED',
     }),
@@ -282,6 +408,7 @@ export async function getValidationHistory(params: {
       take: limit,
       orderBy: { createdAt: 'desc' },
       include: {
+        validator: { select: { firstName: true, lastName: true, id: true } },
         supervision: {
           select: {
             id: true,
@@ -299,35 +426,72 @@ export async function getValidationHistory(params: {
   return { data, total, page, limit }
 }
 
-export async function getValidationStats(validatorId: string) {
+export async function getValidationStats(userId: string, role: ValidationRole) {
   const now = new Date()
   const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate())
   const startOfWeek = new Date(now)
   startOfWeek.setDate(now.getDate() - 7)
 
+  if (role === 'RESEARCHER') {
+    const myPendingWhere: Prisma.SupervisionWhereInput = {
+      validationStatus: 'PENDING',
+      ...reviewerQueueFilter(userId),
+    }
+    const [pending, validatedToday, rejectedThisWeek, revisedThisWeek, byType] =
+      await Promise.all([
+        prisma.supervision.count({ where: myPendingWhere }),
+        prisma.validationLog.count({
+          where: {
+            validatorId: userId,
+            status: 'VALIDATED',
+            createdAt: { gte: startOfDay },
+          },
+        }),
+        prisma.validationLog.count({
+          where: {
+            validatorId: userId,
+            status: 'REJECTED',
+            createdAt: { gte: startOfWeek },
+          },
+        }),
+        prisma.validationLog.count({
+          where: {
+            validatorId: userId,
+            status: 'REVISED',
+            createdAt: { gte: startOfWeek },
+          },
+        }),
+        prisma.supervision.groupBy({
+          by: ['type'],
+          where: myPendingWhere,
+          _count: { id: true },
+        }),
+      ])
+
+    const byTypeMap = Object.fromEntries(
+      byType.map((r) => [r.type, r._count.id]),
+    )
+    return {
+      pending,
+      validatedToday,
+      rejectedThisWeek,
+      revisedThisWeek,
+      byType: byTypeMap,
+    }
+  }
+
+  // ASSISTANT, DIRECTOR — org-wide
   const [pending, validatedToday, rejectedThisWeek, revisedThisWeek, byType] =
     await Promise.all([
       prisma.supervision.count({ where: { validationStatus: 'PENDING' } }),
       prisma.validationLog.count({
-        where: {
-          validatorId,
-          status: 'VALIDATED',
-          createdAt: { gte: startOfDay },
-        },
+        where: { status: 'VALIDATED', createdAt: { gte: startOfDay } },
       }),
       prisma.validationLog.count({
-        where: {
-          validatorId,
-          status: 'REJECTED',
-          createdAt: { gte: startOfWeek },
-        },
+        where: { status: 'REJECTED', createdAt: { gte: startOfWeek } },
       }),
       prisma.validationLog.count({
-        where: {
-          validatorId,
-          status: 'REVISED',
-          createdAt: { gte: startOfWeek },
-        },
+        where: { status: 'REVISED', createdAt: { gte: startOfWeek } },
       }),
       prisma.supervision.groupBy({
         by: ['type'],
@@ -337,7 +501,6 @@ export async function getValidationStats(validatorId: string) {
     ])
 
   const byTypeMap = Object.fromEntries(byType.map((r) => [r.type, r._count.id]))
-
   return {
     pending,
     validatedToday,

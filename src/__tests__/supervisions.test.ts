@@ -12,8 +12,8 @@ describe('Supervisions Service Validations', () => {
       firstName: 'Test',
       lastName: 'Student',
       email: `test_supervision_${Date.now()}@esi.dz`,
-      institution: 'ESI',
-      level: 'L3',
+      institution: 'ESI' as const,
+      level: 'MASTER' as const,
     })
     createdStudentId = student.id
   })
@@ -28,11 +28,14 @@ describe('Supervisions Service Validations', () => {
       description: 'A test supervision',
     }
 
-    const created = await createSupervision(supervisionInput)
+    const creatorId = '00000000-0000-4000-8000-000000000000'
+    const created = await createSupervision(supervisionInput, creatorId)
     expect(created.id).toBeDefined()
     expect(created.title).toBe(supervisionInput.title)
     expect(created.type).toBe('PFE')
     expect(created.academicYear).toBe(supervisionInput.academicYear)
+    // Assistant/researcher entry flow: store submitter for audit (no auto main-supervisor row in create)
+    expect(created.submittedByUserId).toBe(creatorId)
   })
 
   test('createSupervision without optional parameters should succeed', async () => {
@@ -44,7 +47,10 @@ describe('Supervisions Service Validations', () => {
       studentId: createdStudentId,
     }
 
-    const created = await createSupervision(supervisionInput)
+    const created = await createSupervision(
+      supervisionInput,
+      '00000000-0000-4000-8000-000000000000',
+    )
     expect(created.id).toBeDefined()
     expect(created.title).toBe(supervisionInput.title)
     expect(created.description).toBeUndefined()
@@ -59,9 +65,12 @@ describe('Supervisions Service Validations', () => {
       studentId: createdStudentId,
     }
 
-    await expect(createSupervision(supervisionInput)).rejects.toThrow(
-      'Title is required',
-    )
+    await expect(
+      createSupervision(
+        supervisionInput,
+        '00000000-0000-4000-8000-000000000000',
+      ),
+    ).rejects.toThrow('Title is required')
   })
 
   test('createSupervision with missing academic year should fail', async () => {
@@ -72,6 +81,11 @@ describe('Supervisions Service Validations', () => {
       studentId: createdStudentId,
     } as unknown as Parameters<typeof createSupervision>[0]
 
-    await expect(createSupervision(supervisionInput)).rejects.toThrow()
+    await expect(
+      createSupervision(
+        supervisionInput,
+        '00000000-0000-4000-8000-000000000000',
+      ),
+    ).rejects.toThrow()
   })
 })

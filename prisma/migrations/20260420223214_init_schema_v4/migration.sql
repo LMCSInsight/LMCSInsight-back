@@ -1,6 +1,3 @@
--- CreateSchema
-CREATE SCHEMA IF NOT EXISTS "public";
-
 -- CreateEnum
 CREATE TYPE "Qualite" AS ENUM ('Enseignant-Chercheur', 'Chercheur');
 
@@ -131,7 +128,6 @@ CREATE TABLE "supervisions" (
     "deletedAt" TIMESTAMP(3),
     "studentId" TEXT NOT NULL,
     "themeId" TEXT,
-    "submittedByUserId" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -256,9 +252,6 @@ CREATE INDEX "students_lastName_firstName_idx" ON "students"("lastName", "firstN
 CREATE INDEX "students_deletedAt_idx" ON "students"("deletedAt");
 
 -- CreateIndex
-CREATE INDEX "supervisions_submittedByUserId_idx" ON "supervisions"("submittedByUserId");
-
--- CreateIndex
 CREATE INDEX "supervisions_type_idx" ON "supervisions"("type");
 
 -- CreateIndex
@@ -377,9 +370,6 @@ ALTER TABLE "supervisions" ADD CONSTRAINT "supervisions_studentId_fkey" FOREIGN 
 
 -- AddForeignKey
 ALTER TABLE "supervisions" ADD CONSTRAINT "supervisions_themeId_fkey" FOREIGN KEY ("themeId") REFERENCES "themes"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "supervisions" ADD CONSTRAINT "supervisions_submittedByUserId_fkey" FOREIGN KEY ("submittedByUserId") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "supervision_supervisors" ADD CONSTRAINT "supervision_supervisors_supervisionId_fkey" FOREIGN KEY ("supervisionId") REFERENCES "supervisions"("id") ON DELETE CASCADE ON UPDATE CASCADE;

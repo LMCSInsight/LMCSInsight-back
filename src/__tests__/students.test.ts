@@ -3,8 +3,10 @@ import {
   createStudent,
   deleteStudent,
   getStudents,
+  getStudentById,
   updateStudent,
 } from '../services/students.js'
+import type { CreateStudentInput } from '../services/students.js'
 
 function uniqueEmail(prefix: string) {
   const randomPart = Math.random().toString(36).slice(2, 10)
@@ -12,22 +14,15 @@ function uniqueEmail(prefix: string) {
 }
 
 function buildStudent(
-  overrides: Partial<{
-    firstName: string
-    lastName: string
-    email: string
-    institution: string
-    level: string
-    specialty: string
-  }> = {},
-) {
+  overrides: Partial<CreateStudentInput> = {},
+): CreateStudentInput {
   return {
     firstName: 'Abderrahim',
     lastName: 'LARIBI',
     email: uniqueEmail('student'),
-    institution: 'ESI Algiers',
-    level: 'L2',
-    specialty: 'Computer Science',
+    institution: 'ESI',
+    level: 'MASTER',
+    specialty: 'SIL',
     ...overrides,
   }
 }
@@ -80,18 +75,16 @@ describe('creating students', () => {
     await expect(createStudent(student)).rejects.toThrow('lastName is required')
   })
 
-  test('without institution should fail', async () => {
-    const student = buildStudent({ institution: '' })
+  test('with invalid institution should fail', async () => {
+    const student = buildStudent({ institution: 'INVALID' as 'ESI' })
 
-    await expect(createStudent(student)).rejects.toThrow(
-      'institution is required',
-    )
+    await expect(createStudent(student)).rejects.toThrow()
   })
 
-  test('without level should fail', async () => {
-    const student = buildStudent({ level: '' })
+  test('with invalid level should fail', async () => {
+    const student = buildStudent({ level: 'L2' as 'MASTER' })
 
-    await expect(createStudent(student)).rejects.toThrow('level is required')
+    await expect(createStudent(student)).rejects.toThrow()
   })
 
   test('with duplicate email should create both records in current test setup', async () => {
@@ -109,8 +102,8 @@ describe('creating students', () => {
 
 describe('fetching students', () => {
   test('should return an array of students', async () => {
-    const students = await getStudents()
-    expect(Array.isArray(students)).toBe(true)
+    const page = await getStudents()
+    expect(Array.isArray(page.data)).toBe(true)
   })
 
   test('should contain recently created students', async () => {
@@ -121,8 +114,8 @@ describe('fetching students', () => {
       buildStudent({ firstName: 'Second' }),
     )
 
-    const students = await getStudents()
-    const studentIds = students.map((student) => student.id)
+    const result = await getStudents()
+    const studentIds = result.data.map((student) => student.id)
 
     expect(studentIds).toContain(firstStudent.id)
     expect(studentIds).toContain(secondStudent.id)
@@ -138,7 +131,7 @@ describe('fetching student by id', () => {
 
     const createdStudent = await createStudent(studentData)
 
-    const fetchedStudent = await getStudentByIdId(createdStudent.id)
+    const fetchedStudent = await getStudentById(createdStudent.id)
 
     expect(fetchedStudent).not.toBeNull()
     expect(fetchedStudent?.id).toBe(createdStudent.id)
@@ -151,7 +144,7 @@ describe('fetching student by id', () => {
 
   test('should return null if the student does not exist', async () => {
     const nonexistentID = 'non-existent-id'
-    const fetchedStudent = await getStudentByIdId(nonexistentID)
+    const fetchedStudent = await getStudentById(nonexistentID)
 
     expect(fetchedStudent).toBeNull()
   })
@@ -165,7 +158,7 @@ describe('fetching student by id', () => {
       email: updatedEmail,
     })
 
-    const fetchedStudent = await getStudentByIdId(createdStudent.id)
+    const fetchedStudent = await getStudentById(createdStudent.id)
     expect(fetchedStudent).not.toBeNull()
     expect(fetchedStudent?.firstName).toBe('Updated Name')
     expect(fetchedStudent?.email).toBe(updatedEmail)
@@ -183,7 +176,7 @@ describe('updating student', () => {
 
     const updatedData = {
       firstName: 'Youcef Updated',
-      level: 'L3',
+      level: 'DOCTORANT' as const,
     }
 
     const updatedStudent = await updateStudent(createdStudent.id, updatedData)
@@ -218,7 +211,7 @@ describe('deleting student', () => {
     const deletedStudent = await deleteStudent(createdStudent.id)
     expect(deletedStudent.id).toBe(createdStudent.id)
 
-    const fetchedStudent = await getStudentByIdId(createdStudent.id)
+    const fetchedStudent = await getStudentById(createdStudent.id)
     expect(fetchedStudent).toBeNull()
   })
 
