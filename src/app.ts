@@ -10,12 +10,14 @@ import { notificationsRoutes } from './routes/notifications.js'
 import { themesRoutes } from './routes/themes.js'
 import { chercheursRoutes } from './routes/chercheurs.js'
 import { errorHandler } from './middleware/errorHandler.js'
+import { usersRoutes } from './routes/users.js'
 
 const app = express()
 app.use(cors())
 app.use(bodyParser.json())
 
 authRoutes(app)
+usersRoutes(app)
 studentsRoutes(app)
 themesRoutes(app)
 chercheursRoutes(app)
