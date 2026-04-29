@@ -39,6 +39,7 @@ CREATE TABLE "teams" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "description" TEXT,
+    "themeId" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -50,7 +51,6 @@ CREATE TABLE "themes" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "description" TEXT,
-    "teamId" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -69,7 +69,6 @@ CREATE TABLE "chercheurs" (
     "grade_recherche" "GradeRecherche",
     "statut" "StatutChercheur" NOT NULL DEFAULT 'Actif',
     "hindex" INTEGER NOT NULL DEFAULT 0,
-    "equipe_id" TEXT,
     "url_dblp" VARCHAR(500),
     "url_google_scholar" VARCHAR(500),
     "url_researchgate" VARCHAR(500),
@@ -195,11 +194,19 @@ CREATE TABLE "notifications" (
     CONSTRAINT "notifications_pkey" PRIMARY KEY ("id")
 );
 
+-- CreateTable
+CREATE TABLE "_TeamMembers" (
+    "A" VARCHAR(50) NOT NULL,
+    "B" TEXT NOT NULL,
+
+    CONSTRAINT "_TeamMembers_AB_pkey" PRIMARY KEY ("A","B")
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "teams_name_key" ON "teams"("name");
 
 -- CreateIndex
-CREATE INDEX "themes_teamId_idx" ON "themes"("teamId");
+CREATE INDEX "teams_themeId_idx" ON "teams"("themeId");
 
 -- CreateIndex
 CREATE INDEX "chercheurs_nom_complet_idx" ON "chercheurs"("nom_complet");
@@ -209,9 +216,6 @@ CREATE INDEX "chercheurs_qualite_idx" ON "chercheurs"("qualite");
 
 -- CreateIndex
 CREATE INDEX "chercheurs_statut_idx" ON "chercheurs"("statut");
-
--- CreateIndex
-CREATE INDEX "chercheurs_equipe_id_idx" ON "chercheurs"("equipe_id");
 
 -- CreateIndex
 CREATE INDEX "chercheurs_qualite_statut_idx" ON "chercheurs"("qualite", "statut");
@@ -363,11 +367,11 @@ CREATE INDEX "notifications_supervisionId_idx" ON "notifications"("supervisionId
 -- CreateIndex
 CREATE INDEX "notifications_createdAt_idx" ON "notifications"("createdAt" DESC);
 
--- AddForeignKey
-ALTER TABLE "themes" ADD CONSTRAINT "themes_teamId_fkey" FOREIGN KEY ("teamId") REFERENCES "teams"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+-- CreateIndex
+CREATE INDEX "_TeamMembers_B_index" ON "_TeamMembers"("B");
 
 -- AddForeignKey
-ALTER TABLE "chercheurs" ADD CONSTRAINT "chercheurs_equipe_id_fkey" FOREIGN KEY ("equipe_id") REFERENCES "teams"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "teams" ADD CONSTRAINT "teams_themeId_fkey" FOREIGN KEY ("themeId") REFERENCES "themes"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "users" ADD CONSTRAINT "users_chercheur_id_fkey" FOREIGN KEY ("chercheur_id") REFERENCES "chercheurs"("chercheur_id") ON DELETE SET NULL ON UPDATE CASCADE;
@@ -404,3 +408,9 @@ ALTER TABLE "notifications" ADD CONSTRAINT "notifications_recipientId_fkey" FORE
 
 -- AddForeignKey
 ALTER TABLE "notifications" ADD CONSTRAINT "notifications_supervisionId_fkey" FOREIGN KEY ("supervisionId") REFERENCES "supervisions"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "_TeamMembers" ADD CONSTRAINT "_TeamMembers_A_fkey" FOREIGN KEY ("A") REFERENCES "chercheurs"("chercheur_id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "_TeamMembers" ADD CONSTRAINT "_TeamMembers_B_fkey" FOREIGN KEY ("B") REFERENCES "teams"("id") ON DELETE CASCADE ON UPDATE CASCADE;

@@ -36,8 +36,10 @@ export async function getChercheurs(options: GetChercheursOptions = {}) {
         qualite: true,
         grade_recherche: true,
         mails: true,
-        equipe_id: true,
-        team: { select: { name: true } },
+        teams: {
+          select: { id: true, name: true },
+          orderBy: { name: 'asc' },
+        },
       },
       skip,
       take: limit,

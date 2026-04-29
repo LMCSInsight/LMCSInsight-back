@@ -14,7 +14,6 @@ describe('createThemeSchema', () => {
   test('accepts name only', () => {
     const v = createThemeSchema.parse({ name: 'IA & vision' })
     expect(v.name).toBe('IA & vision')
-    expect(v.teamId).toBeUndefined()
   })
 
   test('rejects empty name', () => {
@@ -27,15 +26,10 @@ describe('updateThemeSchema', () => {
     const v = updateThemeSchema.parse({ name: 'X' })
     expect(v.name).toBe('X')
   })
-
-  test('accepts null teamId', () => {
-    const v = updateThemeSchema.parse({ teamId: null })
-    expect(v.teamId).toBeNull()
-  })
 })
 
 describe('themes service (mocked ThemeModel)', () => {
-  test('createTheme without teamId', async () => {
+  test('createTheme basic create', async () => {
     const t = await createTheme({ name: 'Thème A' })
     expect(t.id).toBeDefined()
     expect(t.name).toBe('Thème A')

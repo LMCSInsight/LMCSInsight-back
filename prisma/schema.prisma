@@ -92,13 +92,15 @@ model Team {
   id          String  @id @default(uuid())
   name        String  @unique
   description String? @db.Text
+  themeId     String
 
-  chercheurs Chercheur[]
-  themes     Theme[]
+  theme   Theme        @relation(fields: [themeId], references: [id], onDelete: Restrict)
+  members Chercheur[]  @relation("TeamMembers")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@index([themeId])
   @@map("teams")
 }
 
@@ -107,15 +109,13 @@ model Theme {
   name        String
   description String? @db.Text
 
-  teamId String?
-  team   Team?   @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  teams Team[]
 
   supervisions Supervision[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@index([teamId])
   @@map("themes")
 }
 
@@ -137,8 +137,7 @@ model Chercheur {
 
   hindex Int @default(0)
 
-  equipe_id String?
-  team      Team?   @relation(fields: [equipe_id], references: [id], onDelete: SetNull)
+  teams Team[] @relation("TeamMembers")
 
   url_dblp           String? @db.VarChar(500)
   url_google_scholar String? @db.VarChar(500)
@@ -155,7 +154,6 @@ model Chercheur {
   @@index([nom_complet])
   @@index([qualite])
   @@index([statut])
-  @@index([equipe_id])
   @@index([qualite, statut])
   @@index([hindex(sort: Desc)])
   @@map("chercheurs")

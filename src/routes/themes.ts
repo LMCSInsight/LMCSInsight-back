@@ -21,9 +21,6 @@ export function themesRoutes(app: Application) {
         return res.status(201).json(theme)
       } catch (err) {
         const m = err instanceof Error ? err.message : String(err)
-        if (m === 'TEAM_NOT_FOUND') {
-          return res.status(400).json({ error: m })
-        }
         console.error('error creating theme', err)
         return res.status(400).json({ error: m || 'create failed' })
       }
@@ -35,10 +32,9 @@ export function themesRoutes(app: Application) {
     requireAuth,
     async (req: Request, res: Response) => {
       try {
-        const { search, teamId, page, limit } = req.query
+        const { search, page, limit } = req.query
         const result = await getThemes({
           search: search as string | undefined,
-          teamId: teamId as string | undefined,
           page: page ? Number(page) : undefined,
           limit: limit ? Number(limit) : undefined,
         })
@@ -82,7 +78,7 @@ export function themesRoutes(app: Application) {
         return res.json(theme)
       } catch (err) {
         const m = err instanceof Error ? err.message : String(err)
-        if (m === 'TEAM_NOT_FOUND' || m === 'EMPTY_UPDATE') {
+        if (m === 'EMPTY_UPDATE') {
           return res.status(400).json({ error: m })
         }
         if (
