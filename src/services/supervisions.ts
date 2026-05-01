@@ -15,11 +15,9 @@ export const createSupervisionSchema = z.object({
   status: z
     .enum(['IN_PROGRESS', 'DEFENDED', 'ABANDONED', 'EXTENSION', 'SUSPENDED'])
     .optional(),
-  academicYear: z
-    .string()
-    .regex(/^\d{4}-\d{4}$/, {
-      message: 'Academic year must be in format YYYY-YYYY',
-    }),
+  academicYear: z.string().regex(/^\d{4}-\d{4}$/, {
+    message: 'Academic year must be in format YYYY-YYYY',
+  }),
   startDate: z.string().transform((str) => new Date(str)),
   expectedEndDate: z
     .string()
@@ -113,6 +111,7 @@ export interface GetSupervisionsOptions {
   status?: string
   validationStatus?: string
   academicYear?: string
+  studentId?: string
   supervisorId?: string // chercheur_id
   search?: string // matches title or keywords
   page?: number
@@ -127,6 +126,7 @@ export async function getSupervisions(options: GetSupervisionsOptions = {}) {
     status,
     validationStatus,
     academicYear,
+    studentId,
     supervisorId,
     search,
     page = 1,
@@ -140,6 +140,7 @@ export async function getSupervisions(options: GetSupervisionsOptions = {}) {
     ...(status && { status }),
     ...(validationStatus && { validationStatus }),
     ...(academicYear && { academicYear }),
+    ...(studentId && { studentId }),
     ...(supervisorId && { supervisors: { some: { supervisorId } } }),
     ...(submittedByUserId && { submittedByUserId }),
     ...(search && {

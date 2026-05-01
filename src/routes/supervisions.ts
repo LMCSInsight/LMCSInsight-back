@@ -70,6 +70,8 @@ export function supervisionsRoutes(app: Application) {
           status,
           validationStatus,
           academicYear,
+          studentId,
+          student,
           search,
           page,
           limit,
@@ -101,6 +103,9 @@ export function supervisionsRoutes(app: Application) {
           status: status as string | undefined,
           validationStatus: validationStatus as string | undefined,
           academicYear: academicYear as string | undefined,
+          studentId:
+            (studentId as string | undefined) ??
+            (student as string | undefined),
           supervisorId: effectiveSupervisorId,
           search: search as string | undefined,
           page: page ? Number(page) : undefined,
