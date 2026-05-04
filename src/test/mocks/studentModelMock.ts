@@ -83,17 +83,79 @@ export const SupervisionModel = {
   },
 }
 
+type SSRow = {
+  id: string
+  supervisionId: string
+  supervisorId: string
+  isMainSupervisor: boolean
+  isExternal: boolean
+  contributionPercent: number
+}
+
+let supervisionSupervisorRows: SSRow[] = []
+let ssRowId = 1
+
+/** Reset in-memory supervision_supervisors rows between tests. */
+export function resetSupervisionSupervisorMock(): void {
+  supervisionSupervisorRows = []
+  ssRowId = 1
+}
+
 export const SupervisionSupervisorModel = {
-  async create<T extends Record<string, unknown>>({ data }: CreateArgs<T>) {
-    const created = {
-      id: String(nextId),
-      ...data,
-    }
-    nextId += 1
-    return created
+  async findFirst({
+    where,
+  }: {
+    where: { supervisionId?: string; supervisorId?: string }
+  }) {
+    return (
+      supervisionSupervisorRows.find(
+        (r) =>
+          (where.supervisionId === undefined ||
+            r.supervisionId === where.supervisionId) &&
+          (where.supervisorId === undefined ||
+            r.supervisorId === where.supervisorId),
+      ) ?? null
+    )
   },
-  async deleteMany() {
-    return { count: 1 }
+  async create({ data }: CreateArgs<Record<string, unknown>>) {
+    const row: SSRow = {
+      id: String(ssRowId++),
+      supervisionId: String(data.supervisionId),
+      supervisorId: String(data.supervisorId),
+      isMainSupervisor: Boolean(data.isMainSupervisor),
+      isExternal: Boolean(data.isExternal),
+      contributionPercent: Number(data.contributionPercent),
+    }
+    supervisionSupervisorRows.push(row)
+    return row
+  },
+  async findMany({
+    where,
+  }: {
+    where: { supervisionId: string }
+    select?: { contributionPercent?: boolean }
+  }) {
+    return supervisionSupervisorRows
+      .filter((r) => r.supervisionId === where.supervisionId)
+      .map((r) => ({ contributionPercent: r.contributionPercent }))
+  },
+  async delete({ where }: { where: { id: string } }) {
+    const index = supervisionSupervisorRows.findIndex((r) => r.id === where.id)
+    if (index === -1) return null
+    const [removed] = supervisionSupervisorRows.splice(index, 1)
+    return removed
+  },
+  async deleteMany({ where }: { where: { supervisionId?: string } }) {
+    if (!where?.supervisionId) {
+      const count = supervisionSupervisorRows.length
+      supervisionSupervisorRows = []
+      return { count }
+    }
+    const before = supervisionSupervisorRows.length
+    supervisionSupervisorRows = supervisionSupervisorRows.filter(
+      (r) => r.supervisionId !== where.supervisionId,
+    )
+    return { count: before - supervisionSupervisorRows.length }
   },
 }
 
@@ -166,5 +228,88 @@ export const ThemeModel = {
     if (index === -1) return null
     const [deleted] = themes.splice(index, 1)
     return deleted
+  },
+}
+
+const mockUsers: Array<Record<string, unknown> & { id: string }> = []
+
+export const UserModel = {
+  async create({ data }: CreateArgs<Record<string, unknown>>) {
+    const row = {
+      id: randomUUID(),
+      ...data,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }
+    mockUsers.push(row as Record<string, unknown> & { id: string })
+    return row
+  },
+  async findMany({
+    skip = 0,
+    take = 20,
+  }: {
+    where?: object
+    skip?: number
+    take?: number
+    orderBy?: object
+    select?: object
+  } = {}) {
+    return mockUsers.slice(skip, skip + take)
+  },
+  async count() {
+    return mockUsers.length
+  },
+  async groupBy() {
+    return [] as Array<{ role: string; _count: { role: number } }>
+  },
+  async findUnique({ where }: { where: { id: string }; select?: object }) {
+    return mockUsers.find((u) => u.id === where.id) ?? null
+  },
+  async update({
+    where,
+    data,
+  }: {
+    where: { id: string }
+    data: Record<string, unknown>
+    select?: object
+  }) {
+    const index = mockUsers.findIndex((u) => u.id === where.id)
+    if (index === -1) return null
+    const updated = { ...mockUsers[index], ...data, updatedAt: new Date() }
+    mockUsers[index] = updated as (typeof mockUsers)[number]
+    return updated
+  },
+  async delete({ where }: { where: { id: string } }) {
+    const index = mockUsers.findIndex((u) => u.id === where.id)
+    if (index === -1) return null
+    const [removed] = mockUsers.splice(index, 1)
+    return removed
+  },
+}
+
+export const TeamModel = {
+  async findMany() {
+    return []
+  },
+  async count() {
+    return 0
+  },
+}
+
+export const ValidationLogModel = {
+  async create() {
+    return { id: randomUUID() }
+  },
+}
+
+export const AuditLogModel = {
+  async create() {
+    return { id: randomUUID() }
+  },
+}
+
+export const NotificationModel = {
+  async create() {
+    return { id: randomUUID() }
   },
 }

@@ -2,6 +2,7 @@ import bcrypt from 'bcrypt'
 import { z } from 'zod'
 
 import { UserModel } from '../db/models/index.js'
+import { getAppLoginUrl, sendNewUserCredentialsEmail } from './email.js'
 
 const BCRYPT_ROUNDS = 12
 
@@ -24,9 +25,24 @@ export type CreateUserInput = z.infer<typeof createUserSchema>
 export async function createUser(input: CreateUserInput) {
   const validated = createUserSchema.parse(input)
   const hashedPassword = await bcrypt.hash(validated.password, BCRYPT_ROUNDS)
-  return UserModel.create({
+  const user = await UserModel.create({
     data: { ...validated, password: hashedPassword },
   })
+  const loginUrl = getAppLoginUrl()
+  void (async () => {
+    try {
+      await sendNewUserCredentialsEmail({
+        to: validated.email,
+        firstName: validated.firstName,
+        email: validated.email,
+        password: validated.password,
+        loginUrl,
+      })
+    } catch (err) {
+      console.error('[email] new user credentials email failed', err)
+    }
+  })()
+  return user
 }
 
 export interface GetUsersOptions {

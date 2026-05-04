@@ -5,6 +5,10 @@ import {
 } from '../db/models/index.js'
 import { prisma } from '../db/prisma.js'
 import { notify } from './notifications.js'
+import {
+  resolveSupervisorMailRecipient,
+  sendSupervisionAssignedEmail,
+} from './email.js'
 
 // --- SCHEMAS ---
 
@@ -89,6 +93,30 @@ export const replaceSupervisionSupervisorsSchema = z.object({
 export type ReplaceSupervisionSupervisorsInput = z.infer<
   typeof replaceSupervisionSupervisorsSchema
 >
+
+function scheduleSupervisionAssignedEmail(params: {
+  supervisionId: string
+  supervisorChercheurId: string
+  supervisionTitle: string
+}): void {
+  void (async () => {
+    try {
+      const to = await resolveSupervisorMailRecipient(
+        params.supervisorChercheurId,
+      )
+      if (!to) {
+        return
+      }
+      await sendSupervisionAssignedEmail({
+        to,
+        supervisionTitle: params.supervisionTitle,
+        supervisionId: params.supervisionId,
+      })
+    } catch (err) {
+      console.error('[email] supervision assigned notification failed', err)
+    }
+  })()
+}
 
 // --- CRUD OPERATIONS ---
 
@@ -333,6 +361,12 @@ export async function assignSupervisor(
     )
   }
 
+  const supForNotify = await prisma.supervision.findUnique({
+    where: { id: supervisionId },
+    select: { title: true },
+  })
+  const supervisionTitle = supForNotify?.title ?? 'A supervision'
+
   if (validated.isMainSupervisor) {
     const chercheur = await prisma.chercheur.findUnique({
       where: { chercheur_id: validated.supervisorId },
@@ -340,14 +374,8 @@ export async function assignSupervisor(
     })
     const u = chercheur?.user
     if (u?.id && u.isActive) {
-      const sup = await prisma.supervision.findUnique({
-        where: { id: supervisionId },
-        select: { title: true },
-      })
       const title = 'New supervision awaits your review'
-      const message = `“${
-        sup?.title ?? 'A supervision'
-      }” was assigned to you for review.`
+      const message = `“${supervisionTitle}” was assigned to you for review.`
       await notify({
         recipientId: u.id,
         type: 'NEW_SUBMISSION',
@@ -357,6 +385,12 @@ export async function assignSupervisor(
       })
     }
   }
+
+  scheduleSupervisionAssignedEmail({
+    supervisionId,
+    supervisorChercheurId: validated.supervisorId,
+    supervisionTitle,
+  })
 
   return assignment
 }
@@ -403,6 +437,14 @@ export async function replaceSupervisionSupervisors(
     select: { supervisorId: true },
   })
 
+  const previousSupervisorRows = await SupervisionSupervisorModel.findMany({
+    where: { supervisionId },
+    select: { supervisorId: true },
+  })
+  const previousSupervisorIds = new Set(
+    previousSupervisorRows.map((r) => r.supervisorId),
+  )
+
   await prisma.$transaction(async (tx) => {
     await tx.supervisionSupervisor.deleteMany({ where: { supervisionId } })
     await tx.supervisionSupervisor.createMany({
@@ -434,6 +476,17 @@ export async function replaceSupervisionSupervisors(
         title,
         message,
         supervisionId,
+      })
+    }
+  }
+
+  const titleForEmail = current.title ?? 'A supervision'
+  for (const row of rows) {
+    if (!previousSupervisorIds.has(row.supervisorId)) {
+      scheduleSupervisionAssignedEmail({
+        supervisionId,
+        supervisorChercheurId: row.supervisorId,
+        supervisionTitle: titleForEmail,
       })
     }
   }
