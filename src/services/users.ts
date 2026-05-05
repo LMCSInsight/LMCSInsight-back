@@ -1,6 +1,7 @@
 import bcrypt from 'bcrypt'
 import { z } from 'zod'
 
+import { prisma } from '../db/prisma.js'
 import { UserModel } from '../db/models/index.js'
 import { getAppLoginUrl, sendNewUserCredentialsEmail } from './email.js'
 
@@ -22,12 +23,83 @@ export const createUserScehma = createUserSchema
 
 export type CreateUserInput = z.infer<typeof createUserSchema>
 
+/**
+ * Generate a sequential chercheur_id for newly created researchers.
+ * Format: MAT + 3-digit serial number (e.g., MAT001, MAT002, MAT003)
+ */
+async function generateChercheurId(): Promise<string> {
+  // Find all existing MAT-format chercheur_ids
+  const existing = await prisma.chercheur.findMany({
+    where: {
+      chercheur_id: {
+        startsWith: 'MAT',
+      },
+    },
+    select: {
+      chercheur_id: true,
+    },
+  })
+
+  // Extract the highest number
+  let maxNumber = 0
+  existing.forEach((c) => {
+    const num = parseInt(c.chercheur_id.replace('MAT', ''), 10)
+    if (!isNaN(num) && num > maxNumber) {
+      maxNumber = num
+    }
+  })
+
+  // Generate next number with zero padding
+  const nextNumber = maxNumber + 1
+  return `MAT${String(nextNumber).padStart(3, '0')}`
+}
+
 export async function createUser(input: CreateUserInput) {
   const validated = createUserSchema.parse(input)
   const hashedPassword = await bcrypt.hash(validated.password, BCRYPT_ROUNDS)
-  const user = await UserModel.create({
-    data: { ...validated, password: hashedPassword },
+
+  // Generate chercheur_id outside transaction if needed
+  let chercheurId: string | undefined
+  if (validated.role === 'RESEARCHER') {
+    chercheurId = await generateChercheurId()
+  }
+
+  const user = await prisma.$transaction(async (tx) => {
+    const createdUser = await tx.user.create({
+      data: { ...validated, password: hashedPassword },
+    })
+
+    if (validated.role === 'RESEARCHER' && chercheurId) {
+      await tx.chercheur.upsert({
+        where: { chercheur_id: chercheurId },
+        update: {
+          nom_complet: [validated.firstName, validated.lastName]
+            .filter(Boolean)
+            .join(' '),
+          mails: [validated.email],
+          qualite: 'Enseignant_Chercheur',
+          statut: 'Actif',
+        },
+        create: {
+          chercheur_id: chercheurId,
+          nom_complet: [validated.firstName, validated.lastName]
+            .filter(Boolean)
+            .join(' '),
+          mails: [validated.email],
+          qualite: 'Enseignant_Chercheur',
+          statut: 'Actif',
+        },
+      })
+
+      return tx.user.update({
+        where: { id: createdUser.id },
+        data: { chercheur_id: chercheurId },
+      })
+    }
+
+    return createdUser
   })
+
   const loginUrl = getAppLoginUrl()
   void (async () => {
     try {
@@ -112,26 +184,91 @@ export async function getUserById(id: string) {
 
 export async function updateUser(id: string, input: Partial<CreateUserInput>) {
   const validated = createUserSchema.partial().parse(input)
+  const existingUser = await UserModel.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      email: true,
+      role: true,
+    },
+  })
+
+  if (!existingUser) {
+    return null
+  }
 
   if (validated.password) {
     validated.password = await bcrypt.hash(validated.password, BCRYPT_ROUNDS)
   }
 
-  return UserModel.update({
-    where: { id },
-    data: validated,
-    select: {
-      id: true,
-      email: true,
-      firstName: true,
-      lastName: true,
-      role: true,
-      phoneNumber: true,
-      isActive: true,
-      createdAt: true,
-      updatedAt: true,
-    },
+  const nextRole = validated.role ?? existingUser.role
+  let chercheurIdForUpdate: string | null = null
+
+  if (nextRole === 'RESEARCHER') {
+    const existingChercheurId = await UserModel.findUnique({
+      where: { id },
+      select: { chercheur_id: true },
+    }).then((u) => u?.chercheur_id)
+    chercheurIdForUpdate = existingChercheurId ?? (await generateChercheurId())
+  }
+
+  const updatedUser = await prisma.$transaction(async (tx) => {
+    const user = await tx.user.update({
+      where: { id },
+      data: validated,
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        role: true,
+        phoneNumber: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    })
+
+    if (nextRole === 'RESEARCHER' && chercheurIdForUpdate) {
+      await tx.chercheur.upsert({
+        where: { chercheur_id: chercheurIdForUpdate },
+        update: {
+          nom_complet: [
+            validated.firstName ?? existingUser.firstName,
+            validated.lastName ?? existingUser.lastName,
+          ]
+            .filter(Boolean)
+            .join(' '),
+          mails: [validated.email ?? existingUser.email],
+          qualite: 'Enseignant_Chercheur',
+          statut: 'Actif',
+        },
+        create: {
+          chercheur_id: chercheurIdForUpdate,
+          nom_complet: [
+            validated.firstName ?? existingUser.firstName,
+            validated.lastName ?? existingUser.lastName,
+          ]
+            .filter(Boolean)
+            .join(' '),
+          mails: [validated.email ?? existingUser.email],
+          qualite: 'Enseignant_Chercheur',
+          statut: 'Actif',
+        },
+      })
+
+      await tx.user.update({
+        where: { id: user.id },
+        data: { chercheur_id: chercheurIdForUpdate },
+      })
+    }
+
+    return user
   })
+
+  return updatedUser
 }
 
 export async function toggleUserStatus(id: string) {

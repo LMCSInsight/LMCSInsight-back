@@ -1,4 +1,5 @@
 import type { Application, Request, Response } from 'express'
+import { Prisma } from '@prisma/client'
 import { requireAuth } from '../middleware/authMiddleware.js'
 import { requireRole } from '../middleware/roleMiddleware.js'
 import {
@@ -68,6 +69,11 @@ export function usersRoutes(app: Application) {
         const user = await createUser(req.body)
         return res.status(201).json(user)
       } catch (err) {
+        if (err instanceof Prisma.PrismaClientKnownRequestError) {
+          if (err.code === 'P2002') {
+            return res.status(409).json({ error: 'EMAIL_ALREADY_EXISTS' })
+          }
+        }
         console.error('error creating user', err)
         return res.status(500).end()
       }
