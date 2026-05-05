@@ -2,6 +2,8 @@ import nodemailer from 'nodemailer'
 import type { Transporter } from 'nodemailer'
 
 import { prisma } from '../db/prisma.js'
+import { renderNewUserCredentialsEmail } from './emailTemplates/newUserCredentials.js'
+import { renderSupervisionAssignedEmail } from './emailTemplates/supervisionAssigned.js'
 
 let transporter: Transporter | null | undefined
 let missingConfigLogged = false
@@ -27,6 +29,27 @@ function readSmtpConfig() {
 export function isEmailConfigured(): boolean {
   const { host, from } = readSmtpConfig()
   return Boolean(host && from)
+}
+
+/** Extra console guidance after nodemailer failures (no secrets logged). */
+export function logSmtpFailureHint(err: unknown): void {
+  const code =
+    typeof err === 'object' &&
+    err !== null &&
+    'code' in err &&
+    typeof (err as { code: unknown }).code === 'string'
+      ? (err as { code: string }).code
+      : ''
+  if (code !== 'EAUTH') {
+    return
+  }
+  const host = (process.env.SMTP_HOST ?? '').toLowerCase()
+  if (!host.includes('gmail')) {
+    return
+  }
+  console.error(
+    '[email] Gmail rejected SMTP credentials (EAUTH). Enable 2-Step Verification on the Google account, create an App password (Google Account → Security → App passwords), set SMTP_USER to the full Gmail address, SMTP_PASS to that 16-character app password, and use MAIL_FROM consistent with that account.',
+  )
 }
 
 function getTransporter(): Transporter | null {
@@ -115,22 +138,11 @@ export async function sendSupervisionAssignedEmail(params: {
   if (!isEmailConfigured()) {
     return
   }
-  const title = params.supervisionTitle || 'A supervision'
-  const subject = 'New supervision assigned to you'
-  const text = [
-    `You have been assigned as a supervisor for: "${title}".`,
-    '',
-    `Supervision ID: ${params.supervisionId}`,
-    '',
-    'Open the LMCS Insight app to review this supervision.',
-  ].join('\n')
-  const html = `
-    <p>You have been assigned as a supervisor for: <strong>${escapeHtml(
-      title,
-    )}</strong>.</p>
-    <p>Supervision ID: <code>${escapeHtml(params.supervisionId)}</code></p>
-    <p>Open the LMCS Insight app to review this supervision.</p>
-  `.trim()
+  const { subject, text, html } = renderSupervisionAssignedEmail({
+    supervisionTitle: params.supervisionTitle,
+    supervisionId: params.supervisionId,
+    loginUrl: getAppLoginUrl(),
+  })
   await sendMail({ to: params.to, subject, text, html })
 }
 
@@ -144,48 +156,11 @@ export async function sendNewUserCredentialsEmail(params: {
   if (!isEmailConfigured()) {
     return
   }
-  const subject = 'Your LMCS Insight account'
-  const loginLine = params.loginUrl
-    ? `Sign in: ${params.loginUrl}`
-    : 'Use the LMCS Insight app URL your administrator gave you to sign in.'
-  const text = [
-    `Hello ${params.firstName},`,
-    '',
-    'An administrator created an account for you on LMCS Insight.',
-    '',
-    `Email (login): ${params.email}`,
-    `Temporary password: ${params.password}`,
-    '',
-    loginLine,
-    '',
-    'For security, change your password after you first sign in.',
-    '',
-    'If you did not expect this message, contact your administrator.',
-  ].join('\n')
-  const html = `
-    <p>Hello ${escapeHtml(params.firstName)},</p>
-    <p>An administrator created an account for you on <strong>LMCS Insight</strong>.</p>
-    <ul>
-      <li>Email (login): <strong>${escapeHtml(params.email)}</strong></li>
-      <li>Temporary password: <strong>${escapeHtml(
-        params.password,
-      )}</strong></li>
-    </ul>
-    ${
-      params.loginUrl
-        ? `<p><a href="${escapeHtml(params.loginUrl)}">Sign in</a></p>`
-        : '<p>Use the LMCS Insight app URL your administrator gave you to sign in.</p>'
-    }
-    <p><em>For security, change your password after you first sign in.</em></p>
-    <p>If you did not expect this message, contact your administrator.</p>
-  `.trim()
+  const { subject, text, html } = renderNewUserCredentialsEmail({
+    firstName: params.firstName,
+    email: params.email,
+    password: params.password,
+    loginUrl: params.loginUrl,
+  })
   await sendMail({ to: params.to, subject, text, html })
-}
-
-function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
 }

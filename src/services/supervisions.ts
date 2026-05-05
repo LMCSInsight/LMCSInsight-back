@@ -6,6 +6,7 @@ import {
 import { prisma } from '../db/prisma.js'
 import { notify } from './notifications.js'
 import {
+  logSmtpFailureHint,
   resolveSupervisorMailRecipient,
   sendSupervisionAssignedEmail,
 } from './email.js'
@@ -114,6 +115,7 @@ function scheduleSupervisionAssignedEmail(params: {
       })
     } catch (err) {
       console.error('[email] supervision assigned notification failed', err)
+      logSmtpFailureHint(err)
     }
   })()
 }

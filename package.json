@@ -22,7 +22,8 @@
     "db:drop-views": "tsx scripts/drop-views.ts",
     "db:recreate-views": "tsx scripts/recreate-views.ts",
     "db:sql": "prisma migrate diff --from-empty --to-schema prisma/schema.prisma --script --output prisma/generated-from-schema.sql",
-    "db:sql:test": "npm run db:sql"
+    "db:sql:test": "npm run db:sql",
+    "mail-template:export": "tsx scripts/export-mail-templates-demo.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.6.0",

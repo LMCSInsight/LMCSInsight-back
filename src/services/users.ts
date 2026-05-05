@@ -3,7 +3,11 @@ import { z } from 'zod'
 
 import { prisma } from '../db/prisma.js'
 import { UserModel } from '../db/models/index.js'
-import { getAppLoginUrl, sendNewUserCredentialsEmail } from './email.js'
+import {
+  getAppLoginUrl,
+  logSmtpFailureHint,
+  sendNewUserCredentialsEmail,
+} from './email.js'
 
 const BCRYPT_ROUNDS = 12
 
@@ -112,6 +116,7 @@ export async function createUser(input: CreateUserInput) {
       })
     } catch (err) {
       console.error('[email] new user credentials email failed', err)
+      logSmtpFailureHint(err)
     }
   })()
   return user

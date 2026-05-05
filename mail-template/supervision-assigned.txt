@@ -1,0 +1,17 @@
+[DEMO — mock data only]
+Subject: A supervision needs your review
+
+LMCS INSIGHT
+
+A supervision needs your review.
+
+You were assigned as supervisor on:
+“Détection d’anomalies dans les flux IoT par apprentissage profond”
+
+Reference: SUP-2026-04711
+
+Open in app: http://localhost:5173/login
+
+Sign in to validate, request revisions, or reject this supervision.
+
+— This is an automated message, please do not reply.
